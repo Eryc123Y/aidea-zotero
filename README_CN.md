@@ -5,7 +5,8 @@
 <h1 align="center">AIdea</h1>
 
 <p align="center">
-  <strong>免费开源的 Zotero AI 助手插件</strong>
+  <strong>免费开源的 Zotero AI 助手插件</strong><br/>
+  OAuth 登录即用 — 无需 API Key
 </p>
 
 <p align="center">

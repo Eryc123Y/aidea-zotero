@@ -5,7 +5,8 @@
 <h1 align="center">AIdea</h1>
 
 <p align="center">
-  <strong>A free, open-source AI assistant plugin for Zotero</strong>
+  <strong>A free, open-source AI assistant plugin for Zotero</strong><br/>
+  OAuth login only — No API key needed
 </p>
 
 <p align="center">
