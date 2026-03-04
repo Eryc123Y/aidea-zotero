@@ -1,0 +1,11 @@
+startup-begin = zoteroAI is loading
+startup-finish = zoteroAI is ready
+menuitem-label = zoteroAI
+menupopup-label = zoteroAI
+menuitem-submenulabel = zoteroAI
+menuitem-filemenulabel = zoteroAI
+prefs-title = zoteroAI
+prefs-table-title = zoteroAI
+prefs-table-detail = zoteroAI
+tabpanel-lib-tab-label = zoteroAI
+tabpanel-reader-tab-label = zoteroAI

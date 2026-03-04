@@ -1,0 +1,10 @@
+pref-title = zoteroAI
+pref-api-base = API 鍩虹 URL
+pref-api-key = 瀵嗛挜 / API Key
+pref-model = 妯″瀷鍚嶇О
+pref-system-prompt = 绯荤粺鎻愮ず璇嶏紙鍙€夛級
+pref-system-prompt-placeholder = 涓?AI 鍔╂墜璁剧疆鑷畾涔夋寚浠?..
+pref-test-button = 娴嬭瘯杩炴帴
+pref-test-running = 娴嬭瘯涓?..
+pref-test-success = 杩炴帴鎴愬姛
+pref-test-failed = 澶辫触

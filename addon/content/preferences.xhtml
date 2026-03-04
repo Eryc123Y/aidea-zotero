@@ -1,0 +1,95 @@
+<vbox
+  id="__addonRef__-prefs"
+  onload="
+    Zotero.__addonInstance__.hooks.onPrefsEvent('load', {
+      window: this.ownerDocument.defaultView,
+    })
+  "
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+>
+  <linkset>
+    <html:link rel="localization" href="__addonRef__-preferences.ftl" />
+  </linkset>
+  <groupbox>
+    <html:div
+      style="display: flex; flex-direction: column; gap: 18px; padding: 10px"
+    >
+      <html:div
+        id="__addonRef__-model-sections"
+        style="display: flex; flex-direction: column; gap: 18px"
+      ></html:div>
+
+      <html:div style="display: flex; flex-direction: column; gap: 4px">
+        <html:label
+          id="__addonRef__-system-prompt-label"
+          for="__addonRef__-system-prompt"
+          style="font-weight: 600; font-size: 13px"
+        >
+          Custom System Prompt (Optional)
+        </html:label>
+        <html:textarea
+          id="__addonRef__-system-prompt"
+          rows="4"
+          placeholder="Custom instructions for the AI assistant..."
+          style="
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical;
+          "
+        ></html:textarea>
+        <html:span id="__addonRef__-system-prompt-hint" style="font-size: 11px; color: #666">
+          Override the default system prompt (leave empty to use default)
+        </html:span>
+      </html:div>
+
+      <html:div style="display: flex; flex-direction: column; gap: 6px">
+        <html:label
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+          "
+        >
+          <html:input
+            id="__addonRef__-popup-add-text-enabled"
+            type="checkbox"
+          ></html:input>
+          <html:span id="__addonRef__-popup-add-text-label">Show "Add Text" in reader selection popup</html:span>
+        </html:label>
+        <html:span id="__addonRef__-popup-add-text-hint" style="font-size: 11px; color: #666">
+          Disable this if you prefer not to show the Add Text option in Zotero's
+          text selection popup menu.
+        </html:span>
+      </html:div>
+
+      <html:div style="display: flex; flex-direction: column; gap: 6px">
+        <html:label
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+          "
+        >
+          <html:input
+            id="__addonRef__-show-all-models"
+            type="checkbox"
+          ></html:input>
+          <html:span id="__addonRef__-show-all-models-label">Show all models in dropdown</html:span>
+        </html:label>
+        <html:span id="__addonRef__-show-all-models-hint" style="font-size: 11px; color: #666">
+          When enabled, shows all available models. When disabled, only the best
+          models per provider are shown.
+        </html:span>
+      </html:div>
+    </html:div>
+  </groupbox>
+</vbox>
