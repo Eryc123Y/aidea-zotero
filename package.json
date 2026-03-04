@@ -12,13 +12,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhile/zoteroAI.git"
+    "url": "git+https://github.com/Visterainer/zoteroAI.git"
   },
   "author": "zhile",
   "bugs": {
-    "url": "https://github.com/zhile/zoteroAI/issues"
+    "url": "https://github.com/Visterainer/zoteroAI/issues"
   },
-  "homepage": "https://github.com/zhile/zoteroAI#readme",
+  "homepage": "https://github.com/Visterainer/zoteroAI#readme",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "zotero-plugin serve",

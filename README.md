@@ -82,7 +82,7 @@ Full support for **English** and **Chinese** (中文) — switch languages in se
 
 ### Install the Plugin
 
-1. Download the latest `zoteroAI-x.x.x.xpi` from [Releases](https://github.com/zhile/zoteroAI/releases)
+1. Download the latest `zoteroAI-x.x.x.xpi` from [Releases](https://github.com/Visterainer/zoteroAI/releases)
 2. In Zotero, go to **Tools → Add-ons**
 3. Click the gear icon ⚙️ → **Install Add-on From File...**
 4. Select the downloaded `.xpi` file
@@ -146,7 +146,7 @@ Planned features for upcoming releases:
 - 📖 **One-Click Full Document Translation** — Translate the entire paper with a single click, generating a side-by-side bilingual view
 - 🗂️ **One-Click Architecture Diagram** — Automatically generate a structural diagram from the paper's content, visualizing the research framework at a glance
 
-> 💡 Have a feature request? Feel free to open an [Issue](https://github.com/zhile/zoteroAI/issues)!
+> 💡 Have a feature request? Feel free to open an [Issue](https://github.com/Visterainer/zoteroAI/issues)!
 
 ---
 
