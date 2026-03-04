@@ -32,4 +32,4 @@ pref("shortcutLabels", "");
 pref("shortcutDeleted", "");
 pref("customShortcuts", "");
 pref("shortcutOrder", "");
-pref("showAllModels", true);
+pref("showAllModels", false);

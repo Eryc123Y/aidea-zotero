@@ -35,6 +35,7 @@ type PrefKey =
   | "systemPrompt"
   | "oauthModelListCache"
   | "oauthSetupLog"
+  | "oauthRiskAccepted"
   | "uiLanguage";
 
 type Lang = "zh-CN" | "en-US";
@@ -55,7 +56,7 @@ function getLang(): Lang {
   try {
     return /^zh/i.test(String((Zotero as any)?.locale || "")) ? "zh-CN" : "en-US";
   } catch {
-    return "zh-CN";
+    return "en-US";
   }
 }
 
@@ -97,6 +98,7 @@ const I18N = {
     clearAllHistoryConfirm: "确定要清空所有聊天记录吗？\n\n此操作不可撤销，所有对话历史将被永久删除。",
     clearAllHistoryDone: "已清空全部聊天记录",
     clearAllHistoryRunning: "正在清空...",
+    developing: "此功能正在开发中，敬请期待！",
   },
   "en-US": {
     envOAuth: "Environment & OAuth",
@@ -135,6 +137,7 @@ const I18N = {
     clearAllHistoryConfirm: "Are you sure you want to clear ALL chat history?\n\nThis action cannot be undone. All conversation history will be permanently deleted.",
     clearAllHistoryDone: "All chat history cleared",
     clearAllHistoryRunning: "Clearing...",
+    developing: "This feature is under development. Stay tuned!",
   },
 } as const;
 
@@ -458,47 +461,101 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     authCards.appendChild(card);
     providerCards.set(provider, { status, loginBtn, refreshBtn, deleteBtn });
 
-    loginBtn.addEventListener("click", async () => {
-      status.textContent = L.loggingIn;
-      status.style.color = "#555";
-      appendProgress(`[${getProviderLabel(provider)}] ${L.loggingIn}`);
-      await flushUi();
-      const result = await runProviderOAuthLogin(provider);
-      status.textContent = result.message;
-      status.style.color = result.ok ? "green" : "red";
-      appendProgress(`[${getProviderLabel(provider)}] ${result.message}`, result.ok ? "#065f46" : "#991b1b");
-      if (result.ok) {
+    // Disable all buttons for providers that are still under development
+    if (provider === "google-gemini-cli") {
+      const disabledStyle = "opacity:0.45; cursor:not-allowed; pointer-events:none;";
+      loginBtn.setAttribute("style", loginBtn.getAttribute("style") + disabledStyle.replace("pointer-events:none;", ""));
+      refreshBtn.setAttribute("style", refreshBtn.getAttribute("style") + disabledStyle);
+      deleteBtn.setAttribute("style", deleteBtn.getAttribute("style") + disabledStyle);
+      loginBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        win.alert(L.developing);
+      });
+      status.textContent = "Coming soon";
+      status.style.color = "#9ca3af";
+    } else {
+      loginBtn.addEventListener("click", async () => {
+        status.textContent = L.loggingIn;
+        status.style.color = "#555";
+        appendProgress(`[${getProviderLabel(provider)}] ${L.loggingIn}`);
+        await flushUi();
+        const result = await runProviderOAuthLogin(provider);
+        status.textContent = result.message;
+        status.style.color = result.ok ? "green" : "red";
+        appendProgress(`[${getProviderLabel(provider)}] ${result.message}`, result.ok ? "#065f46" : "#991b1b");
+        if (result.ok) {
+          await refreshOneProvider(provider);
+        } else {
+          await renderAccounts();
+        }
+      });
+
+      refreshBtn.addEventListener("click", async () => {
         await refreshOneProvider(provider);
-      } else {
+      });
+
+      deleteBtn.addEventListener("click", async () => {
+        status.textContent = L.running;
+        status.style.color = "#555";
+        appendProgress(`[${getProviderLabel(provider)}] ${L.oauthDelete}`);
+        await flushUi();
+        const result = await removeProviderOAuthCredential(provider);
+        cache = { ...cache, [provider]: [] };
+        saveModelCache(cache);
+        syncSidebarModelPrefsFromCache(cache);
+        renderModels();
         await renderAccounts();
-      }
-    });
-
-    refreshBtn.addEventListener("click", async () => {
-      await refreshOneProvider(provider);
-    });
-
-    deleteBtn.addEventListener("click", async () => {
-      status.textContent = L.running;
-      status.style.color = "#555";
-      appendProgress(`[${getProviderLabel(provider)}] ${L.oauthDelete}`);
-      await flushUi();
-      const result = await removeProviderOAuthCredential(provider);
-      cache = { ...cache, [provider]: [] };
-      saveModelCache(cache);
-      syncSidebarModelPrefsFromCache(cache);
-      renderModels();
-      await renderAccounts();
-      status.textContent = result.message;
-      status.style.color = result.ok ? "#065f46" : "#991b1b";
-      appendProgress(
-        `[${getProviderLabel(provider)}] ${result.message}`,
-        result.ok ? "#065f46" : "#991b1b",
-      );
-    });
+        status.textContent = result.message;
+        status.style.color = result.ok ? "#065f46" : "#991b1b";
+        appendProgress(
+          `[${getProviderLabel(provider)}] ${result.message}`,
+          result.ok ? "#065f46" : "#991b1b",
+        );
+      });
+    }
   }
 
   setupBtn.addEventListener("click", async () => {
+    // Show OAuth risk warning on first click only
+    const alreadyAccepted = getPref("oauthRiskAccepted") === "true";
+    if (!alreadyAccepted) {
+      const riskMessage =
+        "\u26a0\ufe0f OAuth Authorization Notice\n" +
+        "\n" +
+        "\"Auto Configure Environment\" will perform the following:\n" +
+        "1. Install Node.js runtime (if not already installed)\n" +
+        "2. Install the OpenAI Codex CLI tool\n" +
+        "3. Open your browser via OAuth to sign in to your OpenAI account\n" +
+        "\n" +
+        "Please note:\n" +
+        "\u2022 OAuth tokens are stored locally on your device only and are never sent to any third-party server\n" +
+        "\u2022 The plugin communicates directly with the AI provider's official API\n" +
+        "\u2022 This plugin uses OAuth tokens obtained via Codex CLI, which is not an officially endorsed usage \u2014 there is a theoretical risk of account restrictions\n" +
+        "\u2022 Using AI services may incur charges depending on your account billing plan\n" +
+        "\u2022 This plugin is completely free, open-source, and does not collect any user data\n" +
+        "\n" +
+        "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" +
+        "\n" +
+        "\u26a0\ufe0f OAuth \u6388\u6743\u63d0\u793a\n" +
+        "\n" +
+        "\u201c\u81ea\u52a8\u914d\u7f6e\u73af\u5883\u201d\u5c06\u6267\u884c\u4ee5\u4e0b\u64cd\u4f5c\uff1a\n" +
+        "1. \u5b89\u88c5 Node.js \u8fd0\u884c\u73af\u5883\uff08\u5982\u5c1a\u672a\u5b89\u88c5\uff09\n" +
+        "2. \u5b89\u88c5 OpenAI Codex CLI \u5de5\u5177\n" +
+        "3. \u901a\u8fc7 OAuth \u534f\u8bae\u6253\u5f00\u6d4f\u89c8\u5668\uff0c\u5f15\u5bfc\u60a8\u767b\u5f55 OpenAI \u8d26\u53f7\n" +
+        "\n" +
+        "\u8bf7\u6ce8\u610f\uff1a\n" +
+        "\u2022 OAuth \u767b\u5f55\u751f\u6210\u7684\u8bbf\u95ee\u4ee4\u724c\u4ec5\u4fdd\u5b58\u5728\u672c\u5730\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u81f3\u4efb\u4f55\u7b2c\u4e09\u65b9\u670d\u52a1\u5668\n" +
+        "\u2022 \u63d2\u4ef6\u76f4\u63a5\u8c03\u7528 AI \u670d\u52a1\u5546\u7684\u5b98\u65b9 API\uff0c\u6240\u6709\u901a\u4fe1\u5747\u5728\u60a8\u4e0e\u670d\u52a1\u5546\u4e4b\u95f4\u8fdb\u884c\n" +
+        "\u2022 \u672c\u63d2\u4ef6\u501f\u52a9 Codex CLI \u7684 OAuth \u4ee4\u724c\u8c03\u7528 API\uff0c\u6b64\u7528\u6cd5\u672a\u7ecf\u670d\u52a1\u5546\u660e\u786e\u6388\u6743\uff0c\u7406\u8bba\u4e0a\u5b58\u5728\u8d26\u53f7\u88ab\u9650\u5236\u7684\u53ef\u80fd\u6027\n" +
+        "\u2022 \u4f7f\u7528 AI \u670d\u52a1\u53ef\u80fd\u4ea7\u751f\u8d39\u7528\uff0c\u5177\u4f53\u53d6\u51b3\u4e8e\u60a8\u7684\u8d26\u53f7\u8ba1\u8d39\u65b9\u5f0f\n" +
+        "\u2022 \u672c\u63d2\u4ef6\u5b8c\u5168\u514d\u8d39\u4e14\u5f00\u6e90\uff0c\u4e0d\u6536\u96c6\u4efb\u4f55\u7528\u6237\u6570\u636e\n" +
+        "\n" +
+        "Do you wish to continue? / \u662f\u5426\u7ee7\u7eed\uff1f";
+      const accepted = win.confirm(riskMessage);
+      if (!accepted) return;
+      setPref("oauthRiskAccepted", "true");
+    }
+
     progressText.textContent = L.running;
     progressText.style.color = "#555";
     progressList.innerHTML = "";
@@ -553,6 +610,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
       systemPrompt: "",
       oauthModelListCache: "",
       oauthSetupLog: "",
+      oauthRiskAccepted: "",
     };
     for (const [key, value] of Object.entries(defaults)) {
       setPref(key as PrefKey, value);
@@ -563,6 +621,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
       Zotero.Prefs.set(`${config.prefsPrefix}.maxTokens${suffix}`, "4096", true);
     }
     Zotero.Prefs.set(`${config.prefsPrefix}.showPopupAddText`, true, true);
+    Zotero.Prefs.set(`${config.prefsPrefix}.showAllModels`, false, true);
     // Clear all shortcut customizations (custom bubbles, overrides, labels, order, deleted IDs)
     const shortcutPrefsToClear = [
       "shortcuts",
@@ -591,6 +650,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     void renderAccounts();
     if (systemPromptInput) systemPromptInput.value = "";
     if (popupInput) popupInput.checked = true;
+    if (showAllModelsInput) showAllModelsInput.checked = false;
     dangerStatus.textContent = L.restoreDefaultsDone;
     dangerStatus.style.color = "#065f46";
     appendProgress(`✔ ${L.restoreDefaultsDone}`, "#065f46");
