@@ -28,7 +28,7 @@
 </p>
 
 ### 📄 论文感知上下文
-阅读 PDF 时，zoteroAI 自动提取论文内容并提供给 AI 作为上下文。选中阅读器中的文本，即可针对特定段落进行精准提问。
+在 PDF 阅读器中选中文本，点击 **“Add Text”** 即可将选中内容添加到附件区。AI 在回答时会自动引用这些内容作为上下文，实现段落级的精准问答。
 
 <p align="center">
   <img src="doc/screenshots/add_text.png" alt="Add Text 弹窗" width="500" />
@@ -165,5 +165,5 @@ npm run test:unit
 ---
 
 <p align="center">
-  由 <strong>zhile</strong> 用 ❤️ 打造
+  作者：<strong>zhile</strong>
 </p>

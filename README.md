@@ -28,7 +28,7 @@ Chat with AI directly in Zotero's side panel — available in both the **Library
 </p>
 
 ### 📄 Paper-Aware Context
-When reading a PDF, zoteroAI automatically extracts the paper content and provides it as context to the AI. Select text in the reader to ask targeted questions about specific passages.
+Select text in the PDF reader and click **"Add Text"** to attach the selected passage to the context area. The AI will use it as reference when answering your questions — enabling precise, passage-level Q&A.
 
 <p align="center">
   <img src="doc/screenshots/add_text.png" alt="Add Text popup" width="500" />
@@ -165,5 +165,5 @@ This project is a fork of [llm-for-zotero](https://github.com/yilewang/llm-for-z
 ---
 
 <p align="center">
-  Made with ❤️ by <strong>zhile</strong>
+  Author: <strong>zhile</strong>
 </p>
