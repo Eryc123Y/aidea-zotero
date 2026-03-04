@@ -1,7 +1,9 @@
 # Zotero LLM Plugin — 技术架构文档
 
-> 最后更新：2026-02-28 (v6)
+> 最后更新：2026-03-04 (v7)
 > 目的：为开发者提供快速定位代码、理解模块职责的完整技术参考。
+>
+> [🇬🇧 English Version](./ARCHITECTURE_EN.md)
 
 ---
 
