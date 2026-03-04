@@ -3,7 +3,7 @@
 > Last updated: 2026-03-04 (v7)
 > Purpose: A comprehensive technical reference for developers to quickly locate code and understand module responsibilities.
 >
-> [🇨🇳 中文版](./ARCHITECTURE.md)
+> [🇨🇳 中文版](./ARCHITECTURE_CN.md)
 
 ---
 
