@@ -6,11 +6,16 @@
 
 <p align="center">
   <strong>A free, open-source AI assistant plugin for Zotero</strong><br/>
-  OAuth login only — No API key needed
+  Log in with your ChatGPT account — No API key needed<br/>
+  Latest supported: <strong>ChatGPT 5.4</strong>
 </p>
 
 <p align="center">
-  <a href="./README_CN.md">🇨🇳 中文版</a> &nbsp;|&nbsp;
+  🎉🎊 <strong>Now supporting ChatGPT 5.4!</strong> 🚀✨
+</p>
+
+<p align="center">
+  <a href="./README_CN.md">中文版</a> &nbsp;|&nbsp;
   <a href="#features">Features</a> &nbsp;|&nbsp;
   <a href="#installation">Installation</a> &nbsp;|&nbsp;
   <a href="#getting-started">Getting Started</a> &nbsp;|&nbsp;
@@ -41,8 +46,10 @@ One-click shortcut buttons for common tasks like **Summarize**, **Explain**, **T
 ### 🖼️ Multimodal Support
 Attach images (screenshots, figures, charts) to your messages. Drag & drop, paste from clipboard, or use the screenshot tool to capture content directly from your PDFs.
 
-### 🔐 OAuth Login (No API Key Required)
-Sign in with your OpenAI account via OAuth — no need to manage API keys manually. The plugin leverages the Codex CLI OAuth flow for seamless authentication.
+### 🔐 ChatGPT Account Login (No API Key Required)
+Sign in with your **ChatGPT account** via OAuth — no need for an API key or subscription to the API platform. If you have a free or paid ChatGPT account, you're good to go. The plugin leverages the Codex CLI OAuth flow for seamless authentication.
+
+> **Latest supported version: ChatGPT 5.4**
 
 ### 🌐 Multi-Provider Support
 - **OpenAI (ChatGPT)** — Full support via Codex OAuth
@@ -107,7 +114,7 @@ Go to **Tools → Add-ons → AIdea → Settings** (or **Edit → Settings → A
 Click **"Auto Configure Environment"** to automatically install the required CLI tools. A risk notice will appear on the first run — read it carefully and confirm to proceed.
 
 ### 3. OAuth Login
-Click **"OAuth Login"** on the OpenAI card. Your browser will open for authentication. After signing in, return to Zotero and click **"Refresh Models"** to load available models.
+Click **"OAuth Login"** on the OpenAI card. Your browser will open for authentication — **just sign in with your regular ChatGPT account** (no API key required). After signing in, return to Zotero and click **"Refresh Models"** to load available models.
 
 ### 4. Start Chatting
 - **Library Panel**: Select any item in your library — the AIdea panel appears in the right sidebar
