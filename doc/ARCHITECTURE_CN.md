@@ -49,9 +49,9 @@
 
 | 属性 | 值 |
 |---|---|
-| 名称 | `zotero-ai` (addonName: `zoteroAI`) |
-| 插件 ID | `zoteroai@local.zhile` |
-| 偏好前缀 | `extensions.zotero.zoteroai` |
+| 名称 | `aidea-for-zotero` (addonName: `AIdea`) |
+| 插件 ID | `aidea@visterainer` |
+| 偏好前缀 | `extensions.zotero.aidea` |
 | 目标环境 | Zotero 7 (Firefox 115 ESR) |
 | 语言 | TypeScript → esbuild 打包 → JS |
 | 样式 | 原生 CSS（无框架） |
@@ -107,7 +107,7 @@ npm run test:unit    # 运行单元测试
 
 定义在 `zotero-plugin.config.ts`：
 
-1. **esbuild** 将 `src/index.ts` 打包为 `addon/content/scripts/zoteroai.js`
+1. **esbuild** 将 `src/index.ts` 打包为 `addon/content/scripts/aidea.js`
    - target: `firefox115`
    - bundle: `true`
 2. **zotero-plugin-scaffold** 将 `addon/` 所有资源 + 打包后 JS → `.scaffold/build/zotero-ai.xpi`
@@ -126,7 +126,7 @@ npm run test:unit    # 运行单元测试
 
 | 文件 | 职责 |
 |---|---|
-| `src/index.ts` | 注册全局 `Zotero.ZoteroAI` 实例 |
+| `src/index.ts` | 注册全局 `Zotero.AIdea` 实例 |
 | `src/addon.ts` | `Addon` 类，持有 `data.initialized` 状态 |
 | `src/hooks.ts` | Zotero 插件生命周期钩子 |
 
@@ -698,7 +698,7 @@ responseMenuTarget / promptMenuTarget
 - 清除所有聊天记录（`clearAllChatHistory`）
 - 刷新所有侧边栏快捷指令（`refreshAllSidebarShortcuts`）
 
-偏好键前缀：`extensions.zotero.zoteroai.*`
+偏好键前缀：`extensions.zotero.aidea.*`
 
 ---
 
@@ -815,7 +815,7 @@ type OAuthProviderId = "openai-codex" | "google-gemini-cli";
 - 最多 10 个（`MAX_EDITABLE_SHORTCUTS`）
 - 支持增/删/改/拖拽排序/右键菜单
 - 通过 `openShortcutEditDialog()` 弹出编辑对话框
-- 持久化到偏好 `extensions.zotero.zoteroai.customShortcuts`
+- 持久化到偏好 `extensions.zotero.aidea.customShortcuts`
 
 ---
 
@@ -836,7 +836,7 @@ type OAuthProviderId = "openai-codex" | "google-gemini-cli";
 
 **路径**: `src/modules/contextPanel/i18n.ts` (5KB)
 
-支持 `zh-CN`（默认）和 `en-US` 两种语言。通过偏好 `extensions.zotero.zoteroai.uiLanguage` 切换。
+支持 `zh-CN`（默认）和 `en-US` 两种语言。通过偏好 `extensions.zotero.aidea.uiLanguage` 切换。
 
 包含 ~50 个翻译键，覆盖面板标题、按钮文字、状态提示、模型选择提示等。
 

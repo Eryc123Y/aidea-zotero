@@ -8,7 +8,7 @@ item-section-example2-sidenav-tooltip =
     .tooltiptext = 鍙栨秷娉ㄥ唽姝ら儴鍒?item-info-row-example-label = 绀轰緥琛?
 # LLM 闈㈡澘
 llm-panel-head =
-    .label = zoteroAI
+    .label = AIdea
 llm-panel-sidenav-tooltip =
     .tooltiptext = 涓?AI 璁ㄨ褰撳墠鏂囨。
 llm-panel-title = LLM 鍔╂墜

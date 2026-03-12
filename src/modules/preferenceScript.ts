@@ -63,7 +63,7 @@ function getLang(): Lang {
 const I18N = {
   "zh-CN": {
     envOAuth: "环境与 OAuth",
-    autoSetup: "自动配置环境",
+    installEnv: "安装/更新环境",
     refreshAllModels: "刷新全部模型列表",
     running: "执行中...",
     setupDone: "环境配置完成",
@@ -91,10 +91,10 @@ const I18N = {
     showAddTextHint: "如果不想在 Zotero 文本选择弹出菜单中显示 Add Text 选项，请关闭此开关。",
     showAllModels: "在下拉菜单中显示所有模型",
     showAllModelsHint: "开启后显示所有可用模型。关闭时仅显示每个提供商的精选模型。",
-    restoreDefaults: "恢复默认配置",
+    restoreDefaults: "恢复默认",
     restoreDefaultsConfirm: "确定要恢复所有配置到默认值吗？\n\n这将重置所有模型配置、系统提示词等设置。",
     restoreDefaultsDone: "已恢复默认配置",
-    clearAllHistory: "清空全部聊天记录",
+    clearAllHistory: "清空历史",
     clearAllHistoryConfirm: "确定要清空所有聊天记录吗？\n\n此操作不可撤销，所有对话历史将被永久删除。",
     clearAllHistoryDone: "已清空全部聊天记录",
     clearAllHistoryRunning: "正在清空...",
@@ -102,7 +102,7 @@ const I18N = {
   },
   "en-US": {
     envOAuth: "Environment & OAuth",
-    autoSetup: "Auto Configure Environment",
+    installEnv: "Install/Update Env",
     refreshAllModels: "Refresh All Models",
     running: "Running...",
     setupDone: "Environment setup completed",
@@ -130,10 +130,10 @@ const I18N = {
     showAddTextHint: "Disable this if you prefer not to show the Add Text option in Zotero's text selection popup menu.",
     showAllModels: "Show all models in dropdown",
     showAllModelsHint: "When enabled, shows all available models. When disabled, only the best models per provider are shown.",
-    restoreDefaults: "Restore Default Config",
+    restoreDefaults: "Restore Defaults",
     restoreDefaultsConfirm: "Are you sure you want to restore all settings to defaults?\n\nThis will reset all model configurations, system prompt, etc.",
     restoreDefaultsDone: "Default configuration restored",
-    clearAllHistory: "Clear All Chat History",
+    clearAllHistory: "Clear History",
     clearAllHistoryConfirm: "Are you sure you want to clear ALL chat history?\n\nThis action cannot be undone. All conversation history will be permanently deleted.",
     clearAllHistoryDone: "All chat history cleared",
     clearAllHistoryRunning: "Clearing...",
@@ -303,30 +303,24 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   const envTitle = createNode(doc, "div", "font-weight:700; font-size:14px;");
   const envActionRow = createNode(doc, "div", "display:flex; gap:10px; align-items:center; flex-wrap:wrap;");
   const commonBtnStyle = "padding:10px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; text-align:center; font-weight:600; line-height:1;";
-  const setupBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #059669; background:#059669; color:#fff;`) as HTMLButtonElement;
-  setupBtn.type = "button";
   const refreshAllBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #666; background:#fff; color:#111;`) as HTMLButtonElement;
   refreshAllBtn.type = "button";
-  const progressText = createNode(doc, "span", "font-size:12px; color:#555; white-space:pre-wrap;");
-  envActionRow.append(setupBtn, refreshAllBtn, progressText);
-  const progressList = createNode(doc, "div", "border:1px solid #e5e7eb; border-radius:8px; padding:8px; max-height:140px; overflow:auto; background:#fafafa; font-size:12px; line-height:1.4;");
-  const logsBox = createNode(doc, "textarea", "width:100%; min-height:120px; padding:8px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; font-size:12px;") as HTMLTextAreaElement;
-  logsBox.readOnly = true;
-  logsBox.value = getPref("oauthSetupLog") || "";
-
-  // Danger zone: restore defaults + clear all history
-  const dangerRow = createNode(doc, "div", "display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:4px; padding-top:10px; border-top:1px dashed #e5e7eb;");
   const restoreDefaultsBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #d97706; background:#fff; color:#b45309;`) as HTMLButtonElement;
   restoreDefaultsBtn.type = "button";
   const clearAllHistoryBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #dc2626; background:#fff; color:#b91c1c;`) as HTMLButtonElement;
   clearAllHistoryBtn.type = "button";
   const dangerStatus = createNode(doc, "span", "font-size:12px; color:#555; white-space:pre-wrap;");
-  dangerRow.append(restoreDefaultsBtn, clearAllHistoryBtn, dangerStatus);
+  envActionRow.append(refreshAllBtn, restoreDefaultsBtn, clearAllHistoryBtn, dangerStatus);
+  const progressText = createNode(doc, "span", "font-size:12px; color:#555; white-space:pre-wrap;");
+  const progressList = createNode(doc, "div", "border:1px solid #e5e7eb; border-radius:8px; padding:8px; max-height:140px; overflow:auto; background:#fafafa; font-size:12px; line-height:1.4;");
+  const logsBox = createNode(doc, "textarea", "width:100%; min-height:120px; padding:8px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; font-size:12px;") as HTMLTextAreaElement;
+  logsBox.readOnly = true;
+  logsBox.value = getPref("oauthSetupLog") || "";
 
-  envBox.append(envTitle, envActionRow, dangerRow, progressList, logsBox);
+  envBox.append(envTitle, envActionRow, progressText, progressList, logsBox);
   root.appendChild(envBox);
 
-  const authCards = createNode(doc, "div", "display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:12px;");
+  const authCards = createNode(doc, "div", "display:flex; flex-direction:column; gap:12px;");
   root.appendChild(authCards);
 
   const accountsBox = createNode(doc, "div", "border:1px solid #ddd; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;");
@@ -344,6 +338,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
 
   const providerCards = new Map<OAuthProviderId, {
     status: HTMLSpanElement;
+    setupBtn: HTMLButtonElement;
     loginBtn: HTMLButtonElement;
     refreshBtn: HTMLButtonElement;
     deleteBtn: HTMLButtonElement;
@@ -356,7 +351,6 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     optZh.textContent = "CN";
     optEn.textContent = "EN";
     envTitle.textContent = L.envOAuth;
-    setupBtn.textContent = L.autoSetup;
     refreshAllBtn.textContent = L.refreshAllModels;
     restoreDefaultsBtn.textContent = L.restoreDefaults;
     clearAllHistoryBtn.textContent = L.clearAllHistory;
@@ -366,6 +360,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     for (const provider of PROVIDERS) {
       const refs = providerCards.get(provider);
       if (!refs) continue;
+      refs.setupBtn.textContent = L.installEnv;
       refs.loginBtn.textContent = L.oauthLogin;
       refs.refreshBtn.textContent = L.refreshModels;
       refs.deleteBtn.textContent = L.oauthDelete;
@@ -449,6 +444,8 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     const card = createNode(doc, "div", "border:1px solid #ddd; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;");
     const title = createNode(doc, "div", "font-weight:700; font-size:13px;", getProviderLabel(provider));
     const row = createNode(doc, "div", "display:flex; gap:8px; align-items:center; flex-wrap:wrap;");
+    const perProviderSetupBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #059669; background:#059669; color:#fff;`) as HTMLButtonElement;
+    perProviderSetupBtn.type = "button";
     const loginBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #2563eb; background:#2563eb; color:#fff;`) as HTMLButtonElement;
     loginBtn.type = "button";
     const refreshBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #666; background:#fff; color:#111;`) as HTMLButtonElement;
@@ -456,14 +453,15 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     const deleteBtn = createNode(doc, "button", `${commonBtnStyle} border:1px solid #dc2626; background:#fff; color:#b91c1c;`) as HTMLButtonElement;
     deleteBtn.type = "button";
     const status = createNode(doc, "span", "font-size:12px; color:#555; white-space:pre-wrap;") as HTMLSpanElement;
-    row.append(loginBtn, refreshBtn, deleteBtn, status);
+    row.append(perProviderSetupBtn, loginBtn, refreshBtn, deleteBtn, status);
     card.append(title, row);
     authCards.appendChild(card);
-    providerCards.set(provider, { status, loginBtn, refreshBtn, deleteBtn });
+    providerCards.set(provider, { status, setupBtn: perProviderSetupBtn, loginBtn, refreshBtn, deleteBtn });
 
     // Disable all buttons for providers that are still under development
     if (provider === "google-gemini-cli") {
       const disabledStyle = "opacity:0.45; cursor:not-allowed; pointer-events:none;";
+      perProviderSetupBtn.setAttribute("style", perProviderSetupBtn.getAttribute("style") + disabledStyle);
       loginBtn.setAttribute("style", loginBtn.getAttribute("style") + disabledStyle.replace("pointer-events:none;", ""));
       refreshBtn.setAttribute("style", refreshBtn.getAttribute("style") + disabledStyle);
       deleteBtn.setAttribute("style", deleteBtn.getAttribute("style") + disabledStyle);
@@ -474,6 +472,67 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
       status.textContent = "Coming soon";
       status.style.color = "#9ca3af";
     } else {
+      perProviderSetupBtn.addEventListener("click", async () => {
+        // Show OAuth risk warning on first click only
+        const alreadyAccepted = getPref("oauthRiskAccepted") === "true";
+        if (!alreadyAccepted) {
+          const riskMessage =
+            "\u26a0\ufe0f OAuth Authorization Notice\n" +
+            "\n" +
+            "\"Install Environment\" will perform the following:\n" +
+            "1. Install Node.js runtime (if not already installed)\n" +
+            "2. Install the CLI tool for this provider\n" +
+            "3. Open your browser via OAuth to sign in\n" +
+            "\n" +
+            "Please note:\n" +
+            "\u2022 OAuth tokens are stored locally on your device only and are never sent to any third-party server\n" +
+            "\u2022 The plugin communicates directly with the AI provider's official API\n" +
+            "\u2022 This plugin uses OAuth tokens which is not an officially endorsed usage \u2014 there is a theoretical risk of account restrictions\n" +
+            "\u2022 Using AI services may incur charges depending on your account billing plan\n" +
+            "\u2022 This plugin is completely free, open-source, and does not collect any user data\n" +
+            "\n" +
+            "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" +
+            "\n" +
+            "\u26a0\ufe0f OAuth \u6388\u6743\u63d0\u793a\n" +
+            "\n" +
+            "\u201c\u5b89\u88c5\u73af\u5883\u201d\u5c06\u6267\u884c\u4ee5\u4e0b\u64cd\u4f5c\uff1a\n" +
+            "1. \u5b89\u88c5 Node.js \u8fd0\u884c\u73af\u5883\uff08\u5982\u5c1a\u672a\u5b89\u88c5\uff09\n" +
+            "2. \u5b89\u88c5\u5bf9\u5e94\u63d0\u4f9b\u5546\u7684 CLI \u5de5\u5177\n" +
+            "3. \u901a\u8fc7 OAuth \u534f\u8bae\u6253\u5f00\u6d4f\u89c8\u5668\u767b\u5f55\n" +
+            "\n" +
+            "\u8bf7\u6ce8\u610f\uff1a\n" +
+            "\u2022 OAuth \u767b\u5f55\u751f\u6210\u7684\u8bbf\u95ee\u4ee4\u724c\u4ec5\u4fdd\u5b58\u5728\u672c\u5730\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u81f3\u4efb\u4f55\u7b2c\u4e09\u65b9\u670d\u52a1\u5668\n" +
+            "\u2022 \u63d2\u4ef6\u76f4\u63a5\u8c03\u7528 AI \u670d\u52a1\u5546\u7684\u5b98\u65b9 API\n" +
+            "\u2022 \u672c\u63d2\u4ef6\u501f\u52a9 CLI \u7684 OAuth \u4ee4\u724c\u8c03\u7528 API\uff0c\u6b64\u7528\u6cd5\u672a\u7ecf\u670d\u52a1\u5546\u660e\u786e\u6388\u6743\uff0c\u7406\u8bba\u4e0a\u5b58\u5728\u8d26\u53f7\u88ab\u9650\u5236\u7684\u53ef\u80fd\u6027\n" +
+            "\u2022 \u4f7f\u7528 AI \u670d\u52a1\u53ef\u80fd\u4ea7\u751f\u8d39\u7528\uff0c\u5177\u4f53\u53d6\u51b3\u4e8e\u60a8\u7684\u8d26\u53f7\u8ba1\u8d39\u65b9\u5f0f\n" +
+            "\u2022 \u672c\u63d2\u4ef6\u5b8c\u5168\u514d\u8d39\u4e14\u5f00\u6e90\uff0c\u4e0d\u6536\u96c6\u4efb\u4f55\u7528\u6237\u6570\u636e\n" +
+            "\n" +
+            "Do you wish to continue? / \u662f\u5426\u7ee7\u7eed\uff1f";
+          const accepted = win.confirm(riskMessage);
+          if (!accepted) return;
+          setPref("oauthRiskAccepted", "true");
+        }
+
+        status.textContent = L.running;
+        status.style.color = "#555";
+        progressList.innerHTML = "";
+        appendProgress(`[${getProviderLabel(provider)}] ${L.running}`);
+        await flushUi();
+        const result = await autoConfigureEnvironment({
+          provider,
+          onProgress: (event) => {
+            const prefix = event.phase === "start" ? "▶" : event.phase === "done" ? (event.ok ? "✔" : "✖") : "•";
+            const output = event.output ? `\n${event.output.slice(0, 220)}` : "";
+            appendProgress(`${prefix} ${event.step}${output}`, event.phase === "done" ? (event.ok ? "#065f46" : "#991b1b") : "#374151");
+          },
+        });
+        logsBox.value = result.logs;
+        setPref("oauthSetupLog", result.logs);
+        status.textContent = result.ok ? L.setupDone : L.setupPartialFail;
+        status.style.color = result.ok ? "green" : "#b91c1c";
+        await refreshOneProvider(provider);
+      });
+
       loginBtn.addEventListener("click", async () => {
         status.textContent = L.loggingIn;
         status.style.color = "#555";
@@ -514,68 +573,6 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
       });
     }
   }
-
-  setupBtn.addEventListener("click", async () => {
-    // Show OAuth risk warning on first click only
-    const alreadyAccepted = getPref("oauthRiskAccepted") === "true";
-    if (!alreadyAccepted) {
-      const riskMessage =
-        "\u26a0\ufe0f OAuth Authorization Notice\n" +
-        "\n" +
-        "\"Auto Configure Environment\" will perform the following:\n" +
-        "1. Install Node.js runtime (if not already installed)\n" +
-        "2. Install the OpenAI Codex CLI tool\n" +
-        "3. Open your browser via OAuth to sign in to your OpenAI account\n" +
-        "\n" +
-        "Please note:\n" +
-        "\u2022 OAuth tokens are stored locally on your device only and are never sent to any third-party server\n" +
-        "\u2022 The plugin communicates directly with the AI provider's official API\n" +
-        "\u2022 This plugin uses OAuth tokens obtained via Codex CLI, which is not an officially endorsed usage \u2014 there is a theoretical risk of account restrictions\n" +
-        "\u2022 Using AI services may incur charges depending on your account billing plan\n" +
-        "\u2022 This plugin is completely free, open-source, and does not collect any user data\n" +
-        "\n" +
-        "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" +
-        "\n" +
-        "\u26a0\ufe0f OAuth \u6388\u6743\u63d0\u793a\n" +
-        "\n" +
-        "\u201c\u81ea\u52a8\u914d\u7f6e\u73af\u5883\u201d\u5c06\u6267\u884c\u4ee5\u4e0b\u64cd\u4f5c\uff1a\n" +
-        "1. \u5b89\u88c5 Node.js \u8fd0\u884c\u73af\u5883\uff08\u5982\u5c1a\u672a\u5b89\u88c5\uff09\n" +
-        "2. \u5b89\u88c5 OpenAI Codex CLI \u5de5\u5177\n" +
-        "3. \u901a\u8fc7 OAuth \u534f\u8bae\u6253\u5f00\u6d4f\u89c8\u5668\uff0c\u5f15\u5bfc\u60a8\u767b\u5f55 OpenAI \u8d26\u53f7\n" +
-        "\n" +
-        "\u8bf7\u6ce8\u610f\uff1a\n" +
-        "\u2022 OAuth \u767b\u5f55\u751f\u6210\u7684\u8bbf\u95ee\u4ee4\u724c\u4ec5\u4fdd\u5b58\u5728\u672c\u5730\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u81f3\u4efb\u4f55\u7b2c\u4e09\u65b9\u670d\u52a1\u5668\n" +
-        "\u2022 \u63d2\u4ef6\u76f4\u63a5\u8c03\u7528 AI \u670d\u52a1\u5546\u7684\u5b98\u65b9 API\uff0c\u6240\u6709\u901a\u4fe1\u5747\u5728\u60a8\u4e0e\u670d\u52a1\u5546\u4e4b\u95f4\u8fdb\u884c\n" +
-        "\u2022 \u672c\u63d2\u4ef6\u501f\u52a9 Codex CLI \u7684 OAuth \u4ee4\u724c\u8c03\u7528 API\uff0c\u6b64\u7528\u6cd5\u672a\u7ecf\u670d\u52a1\u5546\u660e\u786e\u6388\u6743\uff0c\u7406\u8bba\u4e0a\u5b58\u5728\u8d26\u53f7\u88ab\u9650\u5236\u7684\u53ef\u80fd\u6027\n" +
-        "\u2022 \u4f7f\u7528 AI \u670d\u52a1\u53ef\u80fd\u4ea7\u751f\u8d39\u7528\uff0c\u5177\u4f53\u53d6\u51b3\u4e8e\u60a8\u7684\u8d26\u53f7\u8ba1\u8d39\u65b9\u5f0f\n" +
-        "\u2022 \u672c\u63d2\u4ef6\u5b8c\u5168\u514d\u8d39\u4e14\u5f00\u6e90\uff0c\u4e0d\u6536\u96c6\u4efb\u4f55\u7528\u6237\u6570\u636e\n" +
-        "\n" +
-        "Do you wish to continue? / \u662f\u5426\u7ee7\u7eed\uff1f";
-      const accepted = win.confirm(riskMessage);
-      if (!accepted) return;
-      setPref("oauthRiskAccepted", "true");
-    }
-
-    progressText.textContent = L.running;
-    progressText.style.color = "#555";
-    progressList.innerHTML = "";
-    appendProgress(L.running);
-    await flushUi();
-    const result = await autoConfigureEnvironment({
-      onProgress: (event) => {
-        const prefix = event.phase === "start" ? "▶" : event.phase === "done" ? (event.ok ? "✔" : "✖") : "•";
-        const output = event.output ? `\n${event.output.slice(0, 220)}` : "";
-        appendProgress(`${prefix} ${event.step}${output}`, event.phase === "done" ? (event.ok ? "#065f46" : "#991b1b") : "#374151");
-      },
-    });
-    logsBox.value = result.logs;
-    setPref("oauthSetupLog", result.logs);
-    progressText.textContent = result.ok ? L.setupDone : L.setupPartialFail;
-    progressText.style.color = result.ok ? "green" : "#b91c1c";
-    for (const provider of PROVIDERS) {
-      await refreshOneProvider(provider);
-    }
-  });
 
   refreshAllBtn.addEventListener("click", async () => {
     progressText.textContent = L.refreshingModels;

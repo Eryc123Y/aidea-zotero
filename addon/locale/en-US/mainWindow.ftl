@@ -12,7 +12,7 @@ item-info-row-example-label = Example Row
 
 # LLM Panel
 llm-panel-head =
-    .label = zoteroAI
+    .label = AIdea
 llm-panel-sidenav-tooltip =
     .tooltiptext = Chat with AI about the current document
 llm-panel-title = LLM Assistant

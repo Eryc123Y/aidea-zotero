@@ -1,4 +1,4 @@
-pref-title = zoteroAI
+pref-title = AIdea
 pref-api-base = API 鍩虹 URL
 pref-api-key = 瀵嗛挜 / API Key
 pref-model = 妯″瀷鍚嶇О

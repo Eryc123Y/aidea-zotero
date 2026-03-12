@@ -1,9 +1,9 @@
-startup-begin = zoteroAI 鍔犺浇涓?startup-finish = zoteroAI 宸插氨缁?menuitem-label = zoteroAI
-menupopup-label = zoteroAI
-menuitem-submenulabel = zoteroAI
-menuitem-filemenulabel = zoteroAI
-prefs-title = zoteroAI
-prefs-table-title = zoteroAI
-prefs-table-detail = zoteroAI
-tabpanel-lib-tab-label = zoteroAI
-tabpanel-reader-tab-label = zoteroAI
+startup-begin = AIdea 鍔犺浇涓?startup-finish = AIdea 宸插氨缁?menuitem-label = AIdea
+menupopup-label = AIdea
+menuitem-submenulabel = AIdea
+menuitem-filemenulabel = AIdea
+prefs-title = AIdea
+prefs-table-title = AIdea
+prefs-table-detail = AIdea
+tabpanel-lib-tab-label = AIdea
+tabpanel-reader-tab-label = AIdea

@@ -479,6 +479,7 @@ export async function removeProviderOAuthCredential(
   };
 }
 export async function autoConfigureEnvironment(params?: {
+  provider?: OAuthProviderId;
   onProgress?: (event: {
     phase: "start" | "done" | "info";
     step: string;
@@ -521,10 +522,13 @@ export async function autoConfigureEnvironment(params?: {
     };
   }
 
-  const installCmds = [
-    "npm install -g @google/gemini-cli",
-    "npm i -g @openai/codex",
-  ];
+  const providerCmdMap: Record<OAuthProviderId, string> = {
+    "openai-codex": "npm i -g @openai/codex",
+    "google-gemini-cli": "npm install -g @google/gemini-cli",
+  };
+  const installCmds = params?.provider
+    ? [providerCmdMap[params.provider]]
+    : Object.values(providerCmdMap);
   let allOk = true;
   for (const cmd of installCmds) {
     report?.({ phase: "start", step: cmd });
@@ -1012,6 +1016,6 @@ export async function chatWithProviderOAuth(params: {
 
 export async function callProviderEmbeddingsUnsupported(): Promise<never> {
   throw new Error(
-    "OAuth-only mode does not provide embeddings. zoteroAI falls back to BM25 retrieval.",
+    "OAuth-only mode does not provide embeddings. AIdea falls back to BM25 retrieval.",
   );
 }

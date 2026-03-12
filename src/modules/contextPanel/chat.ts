@@ -1,4 +1,4 @@
-﻿import { renderMarkdown, renderMarkdownForNote } from "../../utils/markdown";
+import { renderMarkdown, renderMarkdownForNote } from "../../utils/markdown";
 import {
   findLastAssistantBubble,
   patchStreamingBubble,
@@ -2112,10 +2112,14 @@ export async function sendQuestion(
       refreshChatSafely();
       await persistAssistantOnce();
     } else {
-      // Nothing generated yet — remove the empty assistant bubble
-      const idx = history.indexOf(assistantMessage);
-      if (idx >= 0) history.splice(idx, 1);
+      // Nothing generated yet — keep the assistant message as a
+      // "cancelled" placeholder so that the user-assistant pair stays
+      // intact.  This lets the user still edit / retry the last prompt
+      // via findLatestRetryPair().
+      assistantMessage.text = `*(${panelI18n.cancelled})*`;
+      assistantMessage.streaming = false;
       refreshChatSafely();
+      await persistAssistantOnce();
     }
     setStatusSafely("Ready", "ready");
   };

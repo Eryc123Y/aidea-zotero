@@ -49,9 +49,9 @@
 
 | Property | Value |
 |---|---|
-| Name | `zotero-ai` (addonName: `zoteroAI`) |
-| Plugin ID | `zoteroai@local.zhile` |
-| Pref Prefix | `extensions.zotero.zoteroai` |
+| Name | `aidea-for-zotero` (addonName: `AIdea`) |
+| Plugin ID | `aidea@visterainer` |
+| Pref Prefix | `extensions.zotero.aidea` |
 | Target Environment | Zotero 7 (Firefox 115 ESR) |
 | Language | TypeScript → esbuild bundle → JS |
 | Styling | Vanilla CSS (no framework) |
@@ -107,7 +107,7 @@ npm run test:unit    # Run unit tests
 
 Defined in `zotero-plugin.config.ts`:
 
-1. **esbuild** bundles `src/index.ts` into `addon/content/scripts/zoteroai.js`
+1. **esbuild** bundles `src/index.ts` into `addon/content/scripts/aidea.js`
    - target: `firefox115`
    - bundle: `true`
 2. **zotero-plugin-scaffold** packs all `addon/` resources + bundled JS → `.scaffold/build/zotero-ai.xpi`
@@ -126,7 +126,7 @@ Install manually via Zotero → Tools → Add-ons.
 
 | File | Responsibility |
 |---|---|
-| `src/index.ts` | Registers global `Zotero.ZoteroAI` instance |
+| `src/index.ts` | Registers global `Zotero.AIdea` instance |
 | `src/addon.ts` | `Addon` class, holds `data.initialized` state |
 | `src/hooks.ts` | Zotero plugin lifecycle hooks |
 
@@ -697,7 +697,7 @@ Manages the plugin settings interface, including:
 - Clear all chat history (`clearAllChatHistory`)
 - Refresh all sidebar shortcuts (`refreshAllSidebarShortcuts`)
 
-Preference key prefix: `extensions.zotero.zoteroai.*`
+Preference key prefix: `extensions.zotero.aidea.*`
 
 ---
 
@@ -814,7 +814,7 @@ Returns reasoning configuration based on regex matching of model names. Supporte
 - Up to 10 (`MAX_EDITABLE_SHORTCUTS`)
 - Supports add/delete/edit/drag-reorder/context menu
 - Edit dialog via `openShortcutEditDialog()`
-- Persisted to preference `extensions.zotero.zoteroai.customShortcuts`
+- Persisted to preference `extensions.zotero.aidea.customShortcuts`
 
 ---
 
@@ -835,7 +835,7 @@ Returns reasoning configuration based on regex matching of model names. Supporte
 
 **Path**: `src/modules/contextPanel/i18n.ts` (5KB)
 
-Supports `en-US` (default) and `zh-CN`. Switchable via preference `extensions.zotero.zoteroai.uiLanguage`.
+Supports `en-US` (default) and `zh-CN`. Switchable via preference `extensions.zotero.aidea.uiLanguage`.
 
 Contains ~50 translation keys covering panel titles, button labels, status messages, model selection hints, etc.
 
