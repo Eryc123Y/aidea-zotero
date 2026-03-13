@@ -64,37 +64,6 @@ import { getSharedReaderPanelHostForItem } from "./readerPanel";
 // Section Visibility
 // =============================================================================
 
-/**
- * Timestamp of the last item-change event in library mode.  Used to suppress
- * redundant scroll-to-section calls during layout shifts caused by other
- * sections re-rendering (item details, tags, etc.).
- */
-let lastLibraryItemChangeMs = 0;
-
-/**
- * Scroll our section into view at the top of the sections container.
- * Does NOT set min-height or overflow — sibling sections (附件信息, 标签,
- * 相关 etc.) remain visible below.
- */
-function scrollSectionIntoView(body: Element): void {
-  let section: Element | null = body.closest("item-pane-custom-section");
-  if (!section) section = body.closest(`[data-pane="${PANE_ID}"]`);
-  if (!section) return;
-  (section as HTMLElement).scrollIntoView({ block: "start" });
-}
-
-/**
- * After an item change, other sections re-render and change height, shifting
- * the container's scroll position.  Re-snap our section into view after the
- * layout settles.
- */
-function deferredScrollToSection(body: Element): void {
-  const win = body.ownerDocument?.defaultView;
-  if (!win) return;
-  win.setTimeout(() => {
-    scrollSectionIntoView(body);
-  }, 80);
-}
 
 export function registerLLMStyles(win: _ZoteroTypes.MainWindow) {
   const doc = win.document;
@@ -146,7 +115,6 @@ export function registerReaderContextPanel() {
         `LLM: panel itemChange tabType=${tabType} enabled=${enabled}`,
       );
       if (tabType === "library") {
-        lastLibraryItemChangeMs = Date.now();
         // Synchronously reparent the cached host into the (possibly new) body
         // to avoid flash. This runs before any async render.
         try {
@@ -162,7 +130,7 @@ export function registerReaderContextPanel() {
         } catch (err) {
           ztoolkit.log("LLM: library itemChange reparent failed", err);
         }
-        deferredScrollToSection(body);
+        // Removed: deferredScrollToSection(body) — was hijacking sidebar scroll
         // Return false to prevent Zotero from calling onRender/onAsyncRender,
         // which would cause a visible flash as the body gets cleared.
         return false;
@@ -189,7 +157,7 @@ export function registerReaderContextPanel() {
             }
             host.style.display = "flex";
           }
-          scrollSectionIntoView(body);
+          // Removed: scrollSectionIntoView(body) — was hijacking sidebar scroll
         } catch (err) {
           ztoolkit.log("LLM: library sync reparent failed", err);
         }
@@ -219,7 +187,7 @@ export function registerReaderContextPanel() {
             }
             host.style.display = "flex";
           }
-          scrollSectionIntoView(body);
+          // Removed: scrollSectionIntoView(body) — was hijacking sidebar scroll
         } catch (err) {
           ztoolkit.log("LLM: reader sync reparent failed", err);
         }
@@ -227,7 +195,7 @@ export function registerReaderContextPanel() {
       }
       if (tabType !== "reader") return;
       try {
-        scrollSectionIntoView(body);
+        // Removed: scrollSectionIntoView(body) — was hijacking sidebar scroll
       } catch (err) {
         ztoolkit.log("LLM: scroll section failed", err);
       }
@@ -257,7 +225,7 @@ export function registerReaderContextPanel() {
           body.appendChild(host);
         }
         host.style.display = "flex";
-        scrollSectionIntoView(body);
+        // Removed: scrollSectionIntoView(body) — was hijacking sidebar scroll
 
         const { bootstrapSharedLibraryPanel } =
           await import("./libraryPanel");
