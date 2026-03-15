@@ -17,6 +17,7 @@ pref("apiKeyQuaternary", "");
 pref("modelQuaternary", "");
 pref("systemPrompt", "");
 pref("oauthModelListCache", "");
+pref("oauthModelSelectionCache", "");
 pref("oauthSetupLog", "");
 pref("showPopupAddText", true);
 pref("temperaturePrimary", "0.3");

@@ -12,6 +12,16 @@ import {
   type ProviderModelOption,
 } from "../utils/oauthCli";
 import { clearAllChatHistory } from "../utils/chatStore";
+import {
+  canonicalizeSelectedModelIds,
+  getDefaultSelectedModelIds,
+  normalizeModelId,
+  parseModelSelectionCache,
+  reconcileModelSelectionCache,
+  reconcileProviderModelSelection,
+  serializeModelSelectionCache,
+  type ProviderModelSelectionCache,
+} from "../utils/oauthModelSelection";
 import { renderShortcuts } from "./contextPanel/shortcuts";
 import { shortcutRenderItemState } from "./contextPanel/state";
 import { getPanelI18n } from "./contextPanel/i18n";
@@ -34,12 +44,13 @@ type PrefKey =
   | "modelQuaternary"
   | "systemPrompt"
   | "oauthModelListCache"
+  | "oauthModelSelectionCache"
   | "oauthSetupLog"
   | "oauthRiskAccepted"
   | "uiLanguage";
 
 type Lang = "zh-CN" | "en-US";
-const PROVIDERS: OAuthProviderId[] = ["openai-codex", "google-gemini-cli"];
+const PROVIDERS: OAuthProviderId[] = ["openai-codex", "google-gemini-cli", "qwen", "github-copilot"];
 const PROFILE_KEYS = ["Primary", "Secondary", "Tertiary", "Quaternary"] as const;
 
 const pref = (key: PrefKey) => `${config.prefsPrefix}.${key}`;
@@ -84,7 +95,7 @@ const I18N = {
     status: "状态",
     modelId: "模型 ID",
     source: "来源",
-    internalNote: "设置页已简化。侧边栏模型下拉会自动使用这里拉取到的模型（最多前 4 个）。",
+    internalNote: "只有勾选的模型会出现在侧边栏对话框中。前 4 个勾选模型会同步到配置槽位。",
     systemPrompt: "自定义系统提示词（可选）",
     systemPromptHint: "覆盖默认系统提示词（留空使用默认值）",
     showAddText: "在阅读器选择弹窗显示 Add Text",
@@ -123,7 +134,7 @@ const I18N = {
     status: "Status",
     modelId: "Model ID",
     source: "Source",
-    internalNote: "Settings are simplified. The sidebar model dropdown auto-uses fetched models here (up to first 4).",
+    internalNote: "Only checked models appear in the sidebar dropdown. The first four checked models are synced to profile slots.",
     systemPrompt: "Custom System Prompt (Optional)",
     systemPromptHint: "Override the default system prompt (leave empty to use default)",
     showAddText: "Show \"Add Text\" in reader selection popup",
@@ -166,12 +177,33 @@ function saveModelCache(cache: Partial<Record<OAuthProviderId, ProviderModelOpti
   setPref("oauthModelListCache", JSON.stringify(cache));
 }
 
-function syncSidebarModelPrefsFromCache(cache: Partial<Record<OAuthProviderId, ProviderModelOption[]>>) {
+function parseModelSelectionState(): ProviderModelSelectionCache {
+  return parseModelSelectionCache(getPref("oauthModelSelectionCache"));
+}
+
+function saveModelSelectionState(selectionCache: ProviderModelSelectionCache) {
+  setPref(
+    "oauthModelSelectionCache",
+    serializeModelSelectionCache(selectionCache),
+  );
+}
+
+function syncSidebarModelPrefsFromSelection(
+  cache: Partial<Record<OAuthProviderId, ProviderModelOption[]>>,
+  selectionCache: ProviderModelSelectionCache,
+) {
   const flattened: Array<{ provider: OAuthProviderId; model: string }> = [];
   for (const provider of PROVIDERS) {
+    const selected = new Set(
+      reconcileProviderModelSelection(
+        provider,
+        cache[provider] || [],
+        selectionCache,
+      ).map(normalizeModelId),
+    );
     for (const row of cache[provider] || []) {
       const id = String(row.id || "").trim();
-      if (!id) continue;
+      if (!id || !selected.has(normalizeModelId(id))) continue;
       flattened.push({ provider, model: id });
       if (flattened.length >= 4) break;
     }
@@ -279,6 +311,12 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   let lang = getLang();
   let L = tt(lang);
   let cache = parseModelCache();
+  let selectionCache = parseModelSelectionState();
+  const initialSelection = reconcileModelSelectionCache(cache, selectionCache);
+  if (initialSelection.changed) {
+    selectionCache = initialSelection.cache;
+    saveModelSelectionState(selectionCache);
+  }
 
   const modelSections = doc.querySelector(`#${config.addonRef}-model-sections`) as HTMLDivElement | null;
   if (!modelSections) return;
@@ -389,6 +427,36 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
 
   const flushUi = () => new Promise<void>((resolve) => win.setTimeout(resolve, 0));
 
+  const persistSelectionState = () => {
+    const reconciled = reconcileModelSelectionCache(cache, selectionCache);
+    selectionCache = reconciled.cache;
+    saveModelSelectionState(selectionCache);
+    syncSidebarModelPrefsFromSelection(cache, selectionCache);
+  };
+
+  const setProviderSelection = (
+    provider: OAuthProviderId,
+    modelIds: string[],
+  ) => {
+    selectionCache = {
+      ...selectionCache,
+      [provider]: canonicalizeSelectedModelIds(modelIds, cache[provider] || []),
+    };
+    persistSelectionState();
+    renderModels();
+  };
+
+  const clearProviderState = (provider: OAuthProviderId) => {
+    const nextCache = { ...cache, [provider]: [] };
+    cache = nextCache;
+    saveModelCache(cache);
+    const nextSelection = { ...selectionCache };
+    delete nextSelection[provider];
+    selectionCache = nextSelection;
+    persistSelectionState();
+    renderModels();
+  };
+
   const renderAccounts = async () => {
     accountsTable.innerHTML = "";
     const header = createNode(doc, "div", "display:grid; grid-template-columns:2fr 1fr 2fr; gap:8px; font-weight:700; margin-bottom:6px;");
@@ -404,17 +472,151 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
 
   const renderModels = () => {
     modelsTable.innerHTML = "";
-    const header = createNode(doc, "div", "display:grid; grid-template-columns:1.5fr 2.5fr; gap:8px; font-weight:700; margin-bottom:6px;");
-    header.append(createNode(doc, "div", "", L.source), createNode(doc, "div", "", L.modelId));
-    modelsTable.appendChild(header);
     let count = 0;
     for (const provider of PROVIDERS) {
-      for (const m of cache[provider] || []) {
-        count += 1;
-        const row = createNode(doc, "div", "display:grid; grid-template-columns:1.5fr 2.5fr; gap:8px; padding:6px 0; border-top:1px solid #f0f0f0;");
-        row.append(createNode(doc, "div", "", getProviderLabel(provider)), createNode(doc, "div", "", m.id));
-        modelsTable.appendChild(row);
+      const providerModels = cache[provider] || [];
+      if (!providerModels.length) continue;
+      count += providerModels.length;
+
+      const selected = new Set(
+        reconcileProviderModelSelection(
+          provider,
+          providerModels,
+          selectionCache,
+        ).map(normalizeModelId),
+      );
+      const selectedCount = providerModels.filter((row) =>
+        selected.has(normalizeModelId(row.id)),
+      ).length;
+
+      const section = createNode(
+        doc,
+        "div",
+        "border-top:1px solid #f0f0f0; padding:10px 0; display:flex; flex-direction:column; gap:8px;",
+      );
+      const header = createNode(
+        doc,
+        "div",
+        "display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;",
+      );
+      const title = createNode(
+        doc,
+        "div",
+        "font-weight:700; font-size:13px;",
+        getProviderLabel(provider),
+      );
+      const summaryText = lang === "zh-CN"
+        ? `已勾选 ${selectedCount}/${providerModels.length}`
+        : `Selected ${selectedCount}/${providerModels.length}`;
+      const summary = createNode(
+        doc,
+        "div",
+        "font-size:12px; color:#6b7280;",
+        summaryText,
+      );
+      header.append(title, summary);
+
+      const actions = createNode(
+        doc,
+        "div",
+        "display:flex; gap:6px; flex-wrap:wrap;",
+      );
+      const actionBtnStyle =
+        "padding:4px 10px; border-radius:999px; border:1px solid #d1d5db; background:#fff; color:#111827; cursor:pointer; font-size:12px;";
+      const defaultBtn = createNode(
+        doc,
+        "button",
+        actionBtnStyle,
+        lang === "zh-CN" ? "默认" : "Defaults",
+      ) as HTMLButtonElement;
+      defaultBtn.type = "button";
+      defaultBtn.addEventListener("click", () => {
+        setProviderSelection(
+          provider,
+          getDefaultSelectedModelIds(provider, providerModels),
+        );
+      });
+      const allBtn = createNode(
+        doc,
+        "button",
+        actionBtnStyle,
+        lang === "zh-CN" ? "全选" : "Select All",
+      ) as HTMLButtonElement;
+      allBtn.type = "button";
+      allBtn.addEventListener("click", () => {
+        setProviderSelection(
+          provider,
+          providerModels.map((row) => row.id),
+        );
+      });
+      const clearBtn = createNode(
+        doc,
+        "button",
+        actionBtnStyle,
+        lang === "zh-CN" ? "清空" : "Clear",
+      ) as HTMLButtonElement;
+      clearBtn.type = "button";
+      clearBtn.addEventListener("click", () => {
+        setProviderSelection(provider, []);
+      });
+      actions.append(defaultBtn, allBtn, clearBtn);
+      section.append(header, actions);
+
+      for (const row of providerModels) {
+        const id = String(row.id || "").trim();
+        if (!id) continue;
+        const line = createNode(
+          doc,
+          "label",
+          "display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border:1px solid #f3f4f6; border-radius:8px; cursor:pointer;",
+        );
+        const checkbox = createNode(doc, "input") as HTMLInputElement;
+        checkbox.type = "checkbox";
+        checkbox.checked = selected.has(normalizeModelId(id));
+        checkbox.style.marginTop = "2px";
+        checkbox.addEventListener("change", () => {
+          const nextSelected = new Set(
+            reconcileProviderModelSelection(
+              provider,
+              providerModels,
+              selectionCache,
+            ).map(normalizeModelId),
+          );
+          const normalized = normalizeModelId(id);
+          if (checkbox.checked) {
+            nextSelected.add(normalized);
+          } else {
+            nextSelected.delete(normalized);
+          }
+          const nextIds = providerModels
+            .map((model) => String(model.id || "").trim())
+            .filter((modelId) => nextSelected.has(normalizeModelId(modelId)));
+          setProviderSelection(provider, nextIds);
+        });
+
+        const textBox = createNode(
+          doc,
+          "div",
+          "display:flex; flex-direction:column; gap:2px;",
+        );
+        textBox.append(
+          createNode(doc, "div", "font-size:12px; color:#111827;", id),
+        );
+        if (row.label && row.label !== id) {
+          textBox.append(
+            createNode(
+              doc,
+              "div",
+              "font-size:11px; color:#6b7280;",
+              row.label,
+            ),
+          );
+        }
+        line.append(checkbox, textBox);
+        section.appendChild(line);
       }
+
+      modelsTable.appendChild(section);
     }
     if (!count) {
       modelsTable.appendChild(createNode(doc, "div", "padding:8px 0; color:#6b7280;", L.noModels));
@@ -428,7 +630,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     const models = await fetchAvailableModels(provider);
     cache = { ...cache, [provider]: models };
     saveModelCache(cache);
-    syncSidebarModelPrefsFromCache(cache);
+    persistSelectionState();
     renderModels();
     await renderAccounts();
     const refs = providerCards.get(provider);
@@ -458,19 +660,67 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     authCards.appendChild(card);
     providerCards.set(provider, { status, setupBtn: perProviderSetupBtn, loginBtn, refreshBtn, deleteBtn });
 
-    // Disable all buttons for providers that are still under development
-    if (provider === "google-gemini-cli") {
-      const disabledStyle = "opacity:0.45; cursor:not-allowed; pointer-events:none;";
-      perProviderSetupBtn.setAttribute("style", perProviderSetupBtn.getAttribute("style") + disabledStyle);
-      loginBtn.setAttribute("style", loginBtn.getAttribute("style") + disabledStyle.replace("pointer-events:none;", ""));
-      refreshBtn.setAttribute("style", refreshBtn.getAttribute("style") + disabledStyle);
-      deleteBtn.setAttribute("style", deleteBtn.getAttribute("style") + disabledStyle);
-      loginBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        win.alert(L.developing);
+    // Qwen and Copilot use in-plugin Device Code flows — no CLI needed
+    if (provider === "qwen" || provider === "github-copilot") {
+      perProviderSetupBtn.setAttribute("style", perProviderSetupBtn.getAttribute("style") + "display:none;");
+
+      loginBtn.addEventListener("click", async () => {
+        // Show OAuth risk warning on first click only
+        const alreadyAccepted = getPref("oauthRiskAccepted") === "true";
+        if (!alreadyAccepted) {
+          const riskMessage =
+            "\u26a0\ufe0f OAuth Authorization Notice\n\n" +
+            "This will start the Device Code OAuth flow:\n" +
+            "1. A verification URL and code will be displayed\n" +
+            "2. Open your browser to authorize the application\n\n" +
+            "Please note:\n" +
+            "\u2022 OAuth tokens are stored locally on your device only\n" +
+            "\u2022 This plugin uses OAuth tokens which is not officially endorsed \u2014 theoretical risk of account restrictions\n" +
+            "\u2022 Using AI services may incur charges\n" +
+            "\u2022 This plugin is free, open-source, and collects no user data\n\n" +
+            "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n" +
+            "\u26a0\ufe0f OAuth \u6388\u6743\u63d0\u793a\n\n" +
+            "\u5c06\u542f\u52a8 Device Code OAuth \u6d41\u7a0b\uff0cOAuth \u4ee4\u724c\u4ec5\u4fdd\u5b58\u5728\u672c\u5730\u3002\n" +
+            "\u6b64\u7528\u6cd5\u672a\u7ecf\u670d\u52a1\u5546\u660e\u786e\u6388\u6743\uff0c\u7406\u8bba\u4e0a\u5b58\u5728\u8d26\u53f7\u88ab\u9650\u5236\u7684\u53ef\u80fd\u6027\u3002\n\n" +
+            "Do you wish to continue? / \u662f\u5426\u7ee7\u7eed\uff1f";
+          const accepted = win.confirm(riskMessage);
+          if (!accepted) return;
+          setPref("oauthRiskAccepted", "true");
+        }
+        status.textContent = L.loggingIn;
+        status.style.color = "#555";
+        appendProgress(`[${getProviderLabel(provider)}] ${L.loggingIn}`);
+        await flushUi();
+        const result = await runProviderOAuthLogin(provider);
+        status.textContent = result.message;
+        status.style.color = result.ok ? "green" : "red";
+        appendProgress(`[${getProviderLabel(provider)}] ${result.message}`, result.ok ? "#065f46" : "#991b1b");
+        if (result.ok) {
+          await refreshOneProvider(provider);
+        } else {
+          await renderAccounts();
+        }
       });
-      status.textContent = "Coming soon";
-      status.style.color = "#9ca3af";
+
+      refreshBtn.addEventListener("click", async () => {
+        await refreshOneProvider(provider);
+      });
+
+      deleteBtn.addEventListener("click", async () => {
+        status.textContent = L.running;
+        status.style.color = "#555";
+        appendProgress(`[${getProviderLabel(provider)}] ${L.oauthDelete}`);
+        await flushUi();
+        const result = await removeProviderOAuthCredential(provider);
+        clearProviderState(provider);
+        await renderAccounts();
+        status.textContent = result.message;
+        status.style.color = result.ok ? "#065f46" : "#991b1b";
+        appendProgress(
+          `[${getProviderLabel(provider)}] ${result.message}`,
+          result.ok ? "#065f46" : "#991b1b",
+        );
+      });
     } else {
       perProviderSetupBtn.addEventListener("click", async () => {
         // Show OAuth risk warning on first click only
@@ -559,10 +809,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
         appendProgress(`[${getProviderLabel(provider)}] ${L.oauthDelete}`);
         await flushUi();
         const result = await removeProviderOAuthCredential(provider);
-        cache = { ...cache, [provider]: [] };
-        saveModelCache(cache);
-        syncSidebarModelPrefsFromCache(cache);
-        renderModels();
+        clearProviderState(provider);
         await renderAccounts();
         status.textContent = result.message;
         status.style.color = result.ok ? "#065f46" : "#991b1b";
@@ -606,6 +853,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
       modelQuaternary: "",
       systemPrompt: "",
       oauthModelListCache: "",
+      oauthModelSelectionCache: "",
       oauthSetupLog: "",
       oauthRiskAccepted: "",
     };
@@ -642,12 +890,12 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
 
     // Update local state
     cache = {};
+    selectionCache = {};
     logsBox.value = "";
     renderModels();
     void renderAccounts();
     if (systemPromptInput) systemPromptInput.value = "";
     if (popupInput) popupInput.checked = true;
-    if (showAllModelsInput) showAllModelsInput.checked = false;
     dangerStatus.textContent = L.restoreDefaultsDone;
     dangerStatus.style.color = "#065f46";
     appendProgress(`✔ ${L.restoreDefaultsDone}`, "#065f46");
@@ -688,7 +936,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   renderStaticText();
   renderModels();
   await renderAccounts();
-  syncSidebarModelPrefsFromCache(cache);
+  persistSelectionState();
 
   const systemPromptInput = doc.querySelector(`#${config.addonRef}-system-prompt`) as HTMLTextAreaElement | null;
   if (systemPromptInput) {
@@ -705,10 +953,10 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   }
   const showAllModelsInput = doc.querySelector(`#${config.addonRef}-show-all-models`) as HTMLInputElement | null;
   if (showAllModelsInput) {
-    const samPref = Zotero.Prefs.get(`${config.prefsPrefix}.showAllModels`, true);
-    showAllModelsInput.checked = samPref === true || `${samPref || ""}`.toLowerCase() === "true";
-    showAllModelsInput.addEventListener("change", () => {
-      Zotero.Prefs.set(`${config.prefsPrefix}.showAllModels`, showAllModelsInput.checked, true);
-    });
+    const section = showAllModelsInput.closest("div");
+    if (section) {
+      section.setAttribute("style", "display:none;");
+    }
+    Zotero.Prefs.set(`${config.prefsPrefix}.showAllModels`, false, true);
   }
 }

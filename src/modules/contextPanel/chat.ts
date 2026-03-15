@@ -657,13 +657,17 @@ function resolveEffectiveRequestConfig(params: {
   let apiBase = (params.apiBase || fallbackProfile.apiBase).trim();
   const apiKey = (params.apiKey || fallbackProfile.apiKey).trim();
 
-  // Auto-detect OAuth provider from model name when apiBase doesn't look like
-  // an OAuth marker but the model belongs to a cached provider.
-  // The OAuth marker format is "oauth://<provider>" (e.g., "oauth://openai-codex")
-  if (!apiBase.startsWith("oauth://") && model) {
+  // Auto-detect OAuth provider from model name.
+  // Case 1: apiBase is not an OAuth marker — detect from cache and set apiBase.
+  // Case 2: apiBase is an OAuth marker, but the model belongs to a DIFFERENT
+  //         provider (e.g. user selected a Qwen model while profile points to Codex).
+  if (model) {
     const detectedProvider = detectProviderForModel(model);
     if (detectedProvider) {
-      apiBase = `oauth://${detectedProvider}`;
+      const correctMarker = `oauth://${detectedProvider}`;
+      if (!apiBase.startsWith("oauth://") || apiBase !== correctMarker) {
+        apiBase = correctMarker;
+      }
     }
   }
 

@@ -26,6 +26,7 @@ declare namespace _ZoteroTypes {
       "modelQuaternary": string;
       "systemPrompt": string;
       "oauthModelListCache": string;
+      "oauthModelSelectionCache": string;
       "oauthSetupLog": string;
       "showPopupAddText": boolean;
       "temperaturePrimary": string;

@@ -153,6 +153,72 @@ export async function runShellCommand(command: string, options?: { hidden?: bool
   }
 }
 
+/**
+ * Run a command hidden, poll its output for a URL matching the given pattern,
+ * and invoke `onUrlFound` when the URL appears.  Returns when the process exits.
+ * This is designed for CLI tools like `gemini auth login` which print an OAuth URL
+ * and then wait for the browser callback.
+ *
+ * Uses a line-by-line flush wrapper to overcome Node.js stdout buffering when
+ * the output is redirected to a file.
+ */
+export async function runShellCommandWithUrlCapture(
+  command: string,
+  urlPattern: RegExp,
+  onUrlFound: (url: string) => void,
+  pollTimeoutMs = 60000,
+): Promise<ExecResult> {
+  const outPath = makeTempFilePath("aidea-urlcap-out");
+  const platform = getPlatform();
+  try {
+    // Build a wrapper script that merges stderr into stdout and flushes
+    // each line to the output file immediately.
+    let exe: string;
+    let args: string[];
+    if (platform === "windows") {
+      // PowerShell: pipe through ForEach-Object + Out-File -Append for immediate flush
+      const script =
+        `& { ${command} } 2>&1 | ForEach-Object { $_ | Out-File -FilePath '${outPath.replace(/'/g, "''")}' -Append -Encoding utf8 }`;
+      exe = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+      args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script];
+    } else {
+      // Unix: use script or stdbuf to unbuffer, merge stderr
+      const script = `${command} 2>&1 | while IFS= read -r line; do echo "$line" >> '${outPath.replace(/'/g, "'\\''")}'; done`;
+      exe = "/bin/bash";
+      args = ["-lc", script];
+    }
+
+    // Start the process hidden
+    const processPromise = runProcessAsync(exe, args, true);
+
+    // Poll output file for the URL
+    let urlFound = false;
+    const deadline = Date.now() + pollTimeoutMs;
+    const poll = async () => {
+      while (Date.now() < deadline && !urlFound) {
+        await new Promise((r) => setTimeout(r, 500));
+        const content = readFileTextSync(outPath);
+        const match = content.match(urlPattern);
+        if (match) {
+          urlFound = true;
+          try { onUrlFound(match[0]); } catch { /* ignore */ }
+        }
+      }
+    };
+
+    // Run polling concurrently with the process
+    const [code] = await Promise.all([processPromise, poll()]);
+    const output = readFileTextSync(outPath);
+    return {
+      code,
+      stdout: output,
+      stderr: "",
+    };
+  } finally {
+    removeFile(outPath);
+  }
+}
+
 export function escapeShellArg(value: string): string {
   const platform = getPlatform();
   if (platform === "windows") {
