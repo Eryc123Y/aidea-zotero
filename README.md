@@ -22,10 +22,10 @@
 
 <p align="center">
   <a href="./README_CN.md">中文版</a> &nbsp;|&nbsp;
-  <a href="#features">Features</a> &nbsp;|&nbsp;
-  <a href="#installation">Installation</a> &nbsp;|&nbsp;
-  <a href="#getting-started">Getting Started</a> &nbsp;|&nbsp;
-  <a href="#license">License</a>
+  <a href="#-features">Features</a> &nbsp;|&nbsp;
+  <a href="#-installation">Installation</a> &nbsp;|&nbsp;
+  <a href="#-getting-started">Getting Started</a> &nbsp;|&nbsp;
+  <a href="#-license">License</a>
 </p>
 
 ---
@@ -53,15 +53,18 @@ One-click shortcut buttons for common tasks like **Summarize**, **Explain**, **T
 Attach images (screenshots, figures, charts) to your messages. Drag & drop, paste from clipboard, or use the screenshot tool to capture content directly from your PDFs.
 
 ### 🔐 OAuth Account Login (No API Key Required)
-Sign in with your **existing account** via OAuth — no need for an API key or subscription to the API platform. The plugin supports multiple providers with different OAuth flows for seamless authentication.
+Sign in with your **existing account** via OAuth — no need for an API key or subscription. Supports multiple providers with different OAuth flows for seamless authentication.
 
 > **Latest supported version: ChatGPT 5.4**
 
 ### 🌐 Multi-Provider Support
-- **OpenAI (ChatGPT)** — OAuth via Codex CLI (requires Node.js)
-- **Google Gemini** — In-plugin OAuth (Authorization Code + PKCE, requires Gemini CLI installed)
-- **Qwen (通义千问)** — In-plugin OAuth (Device Code flow, no extra install needed)
-- **GitHub Copilot** — In-plugin OAuth (Device Code flow, no extra install needed)
+
+| Provider | Auth Method | Extra Setup |
+|---|---|---|
+| **OpenAI (ChatGPT)** | OAuth via Codex CLI | Node.js (auto-installed) |
+| **Google Gemini** | In-plugin OAuth (PKCE) | Node.js (auto-installed) |
+| **Qwen (通义千问)** | In-plugin OAuth (Device Code) | None |
+| **GitHub Copilot** | In-plugin OAuth (Device Code) | None |
 
 ### 📝 Note Export
 Save AI responses as Zotero notes with one click. Responses are formatted in Markdown with full LaTeX math rendering support.
@@ -72,12 +75,12 @@ All conversations are saved locally in Zotero's database. Switch between multipl
 ### 🧠 Memory System
 The AI automatically captures and recalls important information across conversations, enabling personalized, context-aware responses that improve over time.
 
-- **Auto-Capture** — detects user preferences, decisions, facts, and key entities from natural conversation (e.g., "I prefer concise answers", "My research focuses on NLP")
-- **Per-Library Isolation** — memories are scoped to each Zotero library, keeping different research projects separate
-- **Smart Deduplication** — uses Jaccard token similarity (≥90% threshold) to prevent storing redundant memories
-- **Relevance-Ranked Retrieval** — multi-factor scoring (token overlap × 0.65 + substring boost + recency × 0.15 + importance × 0.20) ensures the most relevant memories surface
-- **Prompt Injection Defense** — built-in pattern detection prevents malicious content from being stored in memory
-- **Fully Local** — all memories are stored in Zotero's SQLite database; nothing is sent to external servers
+- **Auto-Capture** — detects preferences, decisions, facts, and key entities from natural conversation
+- **Per-Library Isolation** — memories are scoped to each Zotero library, keeping research projects separate
+- **Smart Deduplication** — Jaccard token similarity (≥90%) prevents storing redundant memories
+- **Relevance-Ranked Retrieval** — multi-factor scoring (token overlap × 0.65 + substring boost + recency × 0.15 + importance × 0.20)
+- **Prompt Injection Defense** — built-in pattern detection prevents malicious content from being stored
+- **Fully Local** — all memories are stored in Zotero's SQLite database; nothing is sent externally
 
 ### 🎨 Rich Rendering
 - Full **Markdown** rendering (headings, lists, code blocks, tables)
@@ -86,15 +89,15 @@ The AI automatically captures and recalls important information across conversat
 - Smooth **streaming** responses
 
 ### 🌍 Bilingual Interface
-Full support for **English** and **Chinese** (中文) — switch languages in settings at any time.
+Full support for **English** and **Chinese** (中文) — switch languages in Settings at any time.
 
 ---
 
 ## 📦 Installation
 
 ### Requirements
-- **Zotero 7 / 8** (version 7.0+)
-- **Node.js** (v18+) — required for OpenAI Codex and Gemini CLI tools (Qwen and GitHub Copilot do not require Node.js)
+- **Zotero 7 or later** (version 7.0+)
+- **Node.js** — required for OpenAI and Gemini; **auto-installed** by the plugin if missing (Qwen and GitHub Copilot do not require Node.js)
 
 ### Install the Plugin
 
@@ -112,29 +115,34 @@ Simply install the new `.xpi` file — it will automatically replace the old ver
 ## 🚀 Getting Started
 
 ### 1. Open Settings
-Go to **Tools → Add-ons → AIdea → Settings** (or **Edit → Settings → AIdea**)
+Go to **Tools → Add-ons → AIdea → Settings** (or **Edit → Settings → AIdea** on older Zotero)
+
+### 2. Set Up a Provider
+
+For each provider you want to use, the setup flow on the **provider card** is:
+
+> **① `Install/Update Env`** → **② `OAuth Login`** → **③ `Refresh Models`**
+
+| Button | What it does |
+|---|---|
+| **`Install/Update Env`** | Automatically installs and configures the required CLI tool and runtime (Node.js, npm, etc.). A risk notice appears on first run — read it and confirm to proceed. For **Qwen** and **GitHub Copilot**, this step is not needed. |
+| **`OAuth Login`** | Opens the OAuth authentication flow. For **OpenAI / Gemini**, your browser opens — sign in with your account. For **Qwen / GitHub Copilot**, a dialog shows your authorization code; click **OK** to copy it and open the browser, then paste the code to complete authorization. |
+| **`Refresh Models`** | After login, click this to load the list of available models for this provider. |
+| **`Remove Auth`** | Clears the saved OAuth token for this provider. |
 
 <p align="center">
-  <img src="doc/screenshots/settings_en.png" alt="Settings page" width="600" />
+  <img src="doc/screenshots/settings_en.png" alt="Provider card buttons" width="700" />
 </p>
 
-### 2. Auto Configure Environment
-Click **"Auto Configure Environment"** to automatically install the required CLI tools. A risk notice will appear on the first run — read it carefully and confirm to proceed.
+> 💡 **Tip:** You only need to do this once per provider. The login session is saved locally and persists across Zotero restarts.
 
-### 3. OAuth Login
-Click **"OAuth Login"** on any provider card to start authentication:
-- **OpenAI / Gemini**: Your browser will open for authentication — sign in with your account
-- **Qwen / GitHub Copilot**: A dialog will show your authorization code, click OK to copy it and open the browser, then paste the code to complete authorization
-
-After signing in, return to Zotero and click **"Refresh Models"** to load available models.
-
-### 4. Start Chatting
+### 3. Start Chatting
 - **Library Panel**: Select any item in your library — the AIdea panel appears in the right sidebar
 - **PDF Reader**: Open any PDF — the AIdea panel appears in the reader's side panel
 - Type your question and press **Send** or hit `Enter`
 
-### 5. Use Shortcuts
-Click any shortcut button (Summarize, Explain, etc.) for quick one-click actions. Right-click a shortcut to edit or remove it.
+### 4. Use Quick Actions
+Click any shortcut button (**Summarize**, **Explain**, **Translate**, etc.) for one-click actions. Right-click a shortcut to edit or remove it.
 
 ---
 
@@ -143,9 +151,9 @@ Click any shortcut button (Summarize, Explain, etc.) for quick one-click actions
 | Setting | Description | Default |
 |---|---|---|
 | **UI Language** | Interface language (EN / CN) | EN |
-| **System Prompt** | Custom instructions for the AI | Empty (use default) |
-| **Show "Add Text"** | Show the Add Text option in reader selection popup | ☑ On |
-| **Show All Models** | Show all available models vs. curated best models | ☐ Off |
+| **System Prompt** | Custom instructions for the AI | Empty (use built-in default) |
+| **Show "Add Text"** | Show the Add Text option in the reader selection popup | ☑ On |
+| **Show All Models** | Show all available models vs. curated best models only | ☐ Off |
 
 ---
 
@@ -154,7 +162,7 @@ Click any shortcut button (Summarize, Explain, etc.) for quick one-click actions
 - 🔑 OAuth tokens are stored **locally only** — never sent to third-party servers
 - 📡 All API communication is **directly between you and the AI provider**
 - 🚫 This plugin **does not collect any user data**
-- 📖 Fully **open-source** — inspect the code anytime
+- 📖 Fully **open-source** — inspect the code anytime at [GitHub](https://github.com/Visterainer/aidea-zotero)
 
 ---
 
