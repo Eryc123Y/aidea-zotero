@@ -2077,15 +2077,9 @@ export function setupHandlers(
   const createPinIcon = (doc: Document): Element => {
     const svg = doc.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", "0 0 16 16");
-    // Diagonal pushpin — same stroke style as the trash icon
-    // Three paths: diamond head, needle, and through-pin skewer
+    // Clean star outline — same stroke style as the trash icon
     const paths = [
-      // Parallelogram head (the flat wings of the pushpin)
-      "M10 1.5 L14.5 6 L12.5 8 L8 3.5 Z",
-      // Needle: from the left corner of the head to the tip
-      "M8 3.5 L3 14",
-      // Skewer line across the head (the metal pin going through)
-      "M10 1.5 L12.5 8",
+      "M8 1.5 L10 6 L15 6.5 L11 10 L12 15 L8 12.5 L4 15 L5 10 L1 6.5 L6 6 Z",
     ];
     for (const d of paths) {
       const path = doc.createElementNS(SVG_NS, "path");
@@ -2171,7 +2165,7 @@ export function setupHandlers(
             "llm-history-pin-chip",
             { title: i18n.unpinConversation },
           );
-          pinChip.textContent = "📌";
+          pinChip.textContent = "⭐";
           row.appendChild(pinChip);
         }
 
