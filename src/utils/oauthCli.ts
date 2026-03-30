@@ -539,14 +539,31 @@ async function locateExecutableViaShell(baseName: string): Promise<string | null
   try {
     const result = await runShellCommand(command, { hidden: true });
     if (result.code !== 0) return null;
-    const firstLine = String([result.stdout, result.stderr].join("\n"))
+
+    const candidates = String([result.stdout, result.stderr].join("\n"))
       .split(/\r?\n/g)
       .map((line) => line.trim())
-      .find(Boolean);
-    if (!firstLine || !pathExists(firstLine)) return null;
-    const dir = initLocalFile(firstLine)?.parent?.path || "";
+      .filter((line) => Boolean(line) && pathExists(line));
+
+    if (!candidates.length) return null;
+
+    // On Windows, `where.exe npm` returns multiple hits: first is the
+    // extension-less Unix shebang script which PowerShell cannot execute,
+    // followed by npm.cmd which is the correct Windows wrapper.
+    // Prefer .cmd > .exe > .bat > .ps1, fall back to the first candidate.
+    let chosen = candidates[0];
+    if (platform === "windows") {
+      const priority = [".cmd", ".exe", ".bat", ".ps1"];
+      for (const ext of priority) {
+        const hit = candidates.find((c) => c.toLowerCase().endsWith(ext));
+        if (hit) { chosen = hit; break; }
+      }
+    }
+
+    if (!chosen) return null;
+    const dir = initLocalFile(chosen)?.parent?.path || "";
     if (dir) prependProcessPathEntries([dir]);
-    return firstLine;
+    return chosen;
   } catch {
     return null;
   }
