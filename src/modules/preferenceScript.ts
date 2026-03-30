@@ -64,8 +64,12 @@ function getLang(): Lang {
   const saved = (getPref("uiLanguage") || "").trim();
   if (saved === "en-US") return "en-US";
   if (saved === "zh-CN") return "zh-CN";
+  // Auto-detect from Zotero locale
   try {
-    return /^zh/i.test(String((Zotero as any)?.locale || "")) ? "zh-CN" : "en-US";
+    const detected: Lang = /^zh/i.test(String((Zotero as any)?.locale || "")) ? "zh-CN" : "en-US";
+    // Persist the detected language so future opens don't re-detect
+    setPref("uiLanguage", detected);
+    return detected;
   } catch {
     return "en-US";
   }
@@ -327,15 +331,67 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
 
   const langBox = createNode(doc, "div", "border:1px solid #ddd; border-radius:8px; padding:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;");
   const langLabel = createNode(doc, "label", "font-weight:700; font-size:13px;");
-  const langSelect = createNode(doc, "select", "padding:8px 28px 8px 14px; border:1px solid #ccc; border-radius:6px; font-size:13px; font-weight:600; appearance:none; -moz-appearance:none; background:url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"6\"><path d=\"M0 0l5 6 5-6z\" fill=\"%23666\"/></svg>') no-repeat right 10px center / 10px 6px; background-color:#fff; cursor:pointer; min-width:70px;") as HTMLSelectElement;
-  const optZh = doc.createElementNS(HTML_NS, "option") as HTMLOptionElement;
-  optZh.value = "zh-CN";
-  const optEn = doc.createElementNS(HTML_NS, "option") as HTMLOptionElement;
-  optEn.value = "en-US";
-  langSelect.append(optZh, optEn);
-  langSelect.value = lang;
-  langBox.append(langLabel, langSelect);
+
+  // Custom dropdown — native <select> shows a bullet on the selected <option> in Gecko
+  const LANG_OPTIONS: { value: Lang; label: string }[] = [
+    { value: "zh-CN", label: "CN" },
+    { value: "en-US", label: "EN" },
+  ];
+  const dropdownWrap = createNode(doc, "div", "position:relative; display:inline-block;");
+  const dropdownBtn = createNode(
+    doc, "button",
+    "padding:6px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; font-weight:600; background:#fff; cursor:pointer; min-width:80px; display:flex; align-items:center; justify-content:space-between; gap:8px;",
+  ) as HTMLButtonElement;
+  dropdownBtn.type = "button";
+  const dropdownBtnLabel = createNode(doc, "span", "", LANG_OPTIONS.find(o => o.value === lang)?.label ?? lang);
+  const dropdownBtnArrow = createNode(doc, "span", "font-size:10px; color:#666;", "\u25be");
+  dropdownBtn.append(dropdownBtnLabel, dropdownBtnArrow);
+
+  const dropdownList = createNode(
+    doc, "div",
+    "position:absolute; top:calc(100% + 2px); left:0; min-width:100%; border:1px solid #ccc; border-radius:6px; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:9999; overflow:hidden; display:none;",
+  );
+
+  const dropdownItems = LANG_OPTIONS.map(opt => {
+    const item = createNode(
+      doc, "div",
+      "padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; background:#fff; color:#111; white-space:nowrap;",
+      opt.label,
+    );
+    item.addEventListener("mouseenter", () => { item.style.background = "#f3f4f6"; });
+    item.addEventListener("mouseleave", () => { item.style.background = lang === opt.value ? "#eff6ff" : "#fff"; });
+    item.addEventListener("click", () => {
+      switchLang(opt.value);
+      dropdownBtnLabel.textContent = opt.label;
+      dropdownList.style.display = "none";
+      dropdownItems.forEach(i => { i.style.background = "#fff"; });
+      item.style.background = "#eff6ff";
+    });
+    if (opt.value === lang) item.style.background = "#eff6ff";
+    dropdownList.appendChild(item);
+    return item;
+  });
+
+  dropdownBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdownList.style.display = dropdownList.style.display === "none" ? "block" : "none";
+  });
+  doc.addEventListener("click", () => { dropdownList.style.display = "none"; });
+
+  dropdownWrap.append(dropdownBtn, dropdownList);
+
+  const switchLang = (next: Lang) => {
+    lang = next;
+    setPref("uiLanguage", lang);
+    renderStaticText();
+    renderModels();
+    void renderAccounts();
+    refreshAllSidebarShortcuts();
+  };
+
+  langBox.append(langLabel, dropdownWrap);
   root.appendChild(langBox);
+
 
   const envBox = createNode(doc, "div", "border:1px dashed #bbb; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;");
   const envTitle = createNode(doc, "div", "font-weight:700; font-size:14px;");
@@ -386,8 +442,6 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     L = tt(lang);
     // "UI Language" label stays English regardless of selected language
     langLabel.textContent = "UI Language:";
-    optZh.textContent = "CN";
-    optEn.textContent = "EN";
     envTitle.textContent = L.envOAuth;
     refreshAllBtn.textContent = L.refreshAllModels;
     restoreDefaultsBtn.textContent = L.restoreDefaults;
@@ -923,14 +977,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     }
   });
 
-  langSelect.addEventListener("change", () => {
-    lang = (langSelect.value === "en-US" ? "en-US" : "zh-CN") as Lang;
-    setPref("uiLanguage", lang);
-    renderStaticText();
-    renderModels();
-    void renderAccounts();
-    refreshAllSidebarShortcuts();
-  });
+  // (language switching wired above via switchLang)
 
   renderStaticText();
   renderModels();
