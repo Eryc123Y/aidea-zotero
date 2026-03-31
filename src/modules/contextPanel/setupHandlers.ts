@@ -296,6 +296,7 @@ export function setupHandlers(
     retryModelMenu,
     status,
     chatBox,
+    scrollBottomBtn,
     panelRoot,
   } = getPanelDomRefs(body);
 
@@ -447,6 +448,16 @@ export function setupHandlers(
       // Ignore resize-induced scroll events so the last pre-resize viewport
       // state remains available for relative-position restoration.
       if (viewportResized) return;
+
+      if (scrollBottomBtn) {
+        const isBottom = chatBox.scrollHeight - chatBox.clientHeight - chatBox.scrollTop <= AUTO_SCROLL_BOTTOM_THRESHOLD;
+        if (isBottom) {
+          scrollBottomBtn.classList.remove("visible");
+        } else {
+          scrollBottomBtn.classList.add("visible");
+        }
+      }
+
       // Skip persistence when scroll was caused by our own programmatic
       // scrollTop writes or by layout mutations (e.g. button relayout
       // changing the flex-sized chat area).
@@ -458,6 +469,14 @@ export function setupHandlers(
       captureChatBoxViewportState();
     };
     chatBox.addEventListener("scroll", persistScroll, { passive: true });
+
+    if (scrollBottomBtn) {
+      scrollBottomBtn.addEventListener("click", (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: "smooth" });
+      });
+    }
   }
 
   // Capture scroll before click/focus interactions that may trigger a panel

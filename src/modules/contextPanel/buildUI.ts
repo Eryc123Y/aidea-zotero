@@ -166,7 +166,12 @@ function buildUI(body: Element, item?: Zotero.Item | null) {
   const chatBox = createElement(doc, "div", "llm-messages", {
     id: "llm-chat-box",
   });
-  chatShell.append(chatBox);
+  const scrollBottomBtn = createElement(doc, "button", "llm-scroll-bottom-btn", {
+    id: "llm-scroll-bottom",
+    type: "button",
+    title: "Scroll to bottom",
+  });
+  chatShell.append(chatBox, scrollBottomBtn);
   container.appendChild(chatShell);
 
   // Shortcuts row

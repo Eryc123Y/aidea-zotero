@@ -56,6 +56,7 @@ export type PanelDomRefs = {
   retryModelMenu: HTMLDivElement | null;
   status: HTMLElement | null;
   chatBox: HTMLDivElement | null;
+  scrollBottomBtn: HTMLButtonElement | null;
   panelRoot: HTMLDivElement | null;
 };
 
@@ -148,6 +149,7 @@ export function getPanelDomRefs(body: Element): PanelDomRefs {
     retryModelMenu: body.querySelector("#llm-retry-model-menu") as HTMLDivElement | null,
     status: body.querySelector("#llm-status") as HTMLElement | null,
     chatBox: body.querySelector("#llm-chat-box") as HTMLDivElement | null,
+    scrollBottomBtn: body.querySelector("#llm-scroll-bottom") as HTMLButtonElement | null,
     panelRoot: body.querySelector("#llm-main") as HTMLDivElement | null,
   };
 }
