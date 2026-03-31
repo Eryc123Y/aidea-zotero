@@ -204,6 +204,12 @@ npm run test:unit
 
 ---
 
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Visterainer/aidea-zotero&type=Date)](https://star-history.com/#Visterainer/aidea-zotero&Date)
+
+---
+
 <p align="center">
   作者：<strong>zhile</strong>
 </p>
