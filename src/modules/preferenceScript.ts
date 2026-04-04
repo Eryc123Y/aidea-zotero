@@ -93,6 +93,29 @@ function getLang(): Lang {
 const I18N = {
   "zh-CN": {
     envOAuth: "环境与 OAuth",
+    primaryConnectionMode: "主连接模式",
+    oauthProvidersMode: "OAuth 提供商",
+    customCompatibleMode: "自定义 OpenAI 兼容接口",
+    customEndpointTitle: "自定义 OpenAI 兼容接口",
+    customEndpointHint:
+      "OAuth 提供商卡片会一直保留。切换到自定义模式后，请填写基础配置中的 API Base URL 和 Model；API Key 可选。",
+    customApiBase: "API Base URL *",
+    customApiBasePlaceholder: "例如：http://127.0.0.1:11434/v1/",
+    customApiBaseHint:
+      "支持 localhost 与 http 地址。保存时会自动去除首尾空格，并规范为单个尾部斜杠。",
+    customApiKey: "API Key（可选）",
+    customApiKeyPlaceholder: "留空则不发送 Authorization 头",
+    customApiKeyHint:
+      "仅保存在基础偏好设置中；如果服务端不需要鉴权，可以留空。",
+    customModel: "Model *",
+    customModelPlaceholder: "例如：gpt-4.1-mini 或 llama3.1:8b",
+    customModelHint: "自定义模式请求成功至少需要 API Base URL 和 Model。",
+    customModeDisabled:
+      "当前使用 OAuth 提供商模式；已保存的自定义值会保留，切回自定义模式即可继续使用。",
+    customModeMissing:
+      "自定义模式下必须填写 API Base URL 和 Model；API Key 可选。",
+    customModeReady:
+      "自定义模式已就绪：将使用基础 prefs 中的 API Base URL / API Key / Model。",
     installEnv: "安装/更新环境",
     refreshAllModels: "刷新全部模型列表",
     running: "执行中...",
@@ -137,6 +160,30 @@ const I18N = {
   },
   "en-US": {
     envOAuth: "Environment & OAuth",
+    primaryConnectionMode: "Primary connection mode",
+    oauthProvidersMode: "OAuth providers",
+    customCompatibleMode: "Custom OpenAI-compatible",
+    customEndpointTitle: "Custom OpenAI-compatible",
+    customEndpointHint:
+      "OAuth provider cards always stay visible. In custom mode, fill the base-pref API Base URL and Model; API Key is optional.",
+    customApiBase: "API Base URL *",
+    customApiBasePlaceholder: "Example: http://127.0.0.1:11434/v1/",
+    customApiBaseHint:
+      "Localhost and plain http URLs are allowed. Saving trims whitespace and normalizes to a single trailing slash.",
+    customApiKey: "API Key (Optional)",
+    customApiKeyPlaceholder: "Leave empty to omit the Authorization header",
+    customApiKeyHint:
+      "Stored only in the base prefs; leave blank if your endpoint does not require auth.",
+    customModel: "Model *",
+    customModelPlaceholder: "Example: gpt-4.1-mini or llama3.1:8b",
+    customModelHint:
+      "A successful custom-mode request requires API Base URL and Model.",
+    customModeDisabled:
+      "OAuth provider mode is active. Saved custom values are retained; switch back to custom mode to use them.",
+    customModeMissing:
+      "Custom mode requires API Base URL and Model; API Key is optional.",
+    customModeReady:
+      "Custom mode is ready: requests will use the base-pref API Base URL / API Key / Model.",
     installEnv: "Install/Update Env",
     refreshAllModels: "Refresh All Models",
     running: "Running...",
@@ -185,6 +232,22 @@ const I18N = {
 
 type Dict = Record<string, string>;
 const tt = (l: Lang): Dict => I18N[l] as unknown as Dict;
+
+export function normalizeCustomApiBaseInput(value: string): string {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  return `${trimmed.replace(/\/+$/, "")}/`;
+}
+
+export function getCustomEndpointMissingFields(
+  apiBase: string,
+  model: string,
+): Array<"apiBase" | "model"> {
+  const missing: Array<"apiBase" | "model"> = [];
+  if (!String(apiBase || "").trim()) missing.push("apiBase");
+  if (!String(model || "").trim()) missing.push("model");
+  return missing;
+}
 
 function createNode<K extends keyof HTMLElementTagNameMap>(
   doc: Document,
@@ -559,6 +622,222 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   envBox.append(envTitle, envActionRow, progressText, progressList, logsBox);
   root.appendChild(envBox);
 
+  const connectionModeBox = createNode(
+    doc,
+    "div",
+    "border:1px solid #ddd; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;",
+  );
+  const connectionModeTitle = createNode(
+    doc,
+    "div",
+    "font-weight:700; font-size:14px;",
+  );
+  const connectionModeHint = createNode(
+    doc,
+    "div",
+    "font-size:12px; color:#555; line-height:1.5;",
+  );
+  const connectionModeRow = createNode(
+    doc,
+    "div",
+    "display:flex; gap:16px; align-items:center; flex-wrap:wrap;",
+  );
+  const connectionModeGroupName = `${config.addonRef}-primary-connection-mode`;
+  const oauthModeOption = createNode(
+    doc,
+    "label",
+    "display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; cursor:pointer;",
+  );
+  const oauthModeRadio = createNode(doc, "input") as HTMLInputElement;
+  oauthModeRadio.type = "radio";
+  oauthModeRadio.name = connectionModeGroupName;
+  oauthModeRadio.id = `${config.addonRef}-primary-connection-mode-oauth`;
+  oauthModeRadio.value = "oauth";
+  const oauthModeText = createNode(doc, "span");
+  oauthModeOption.append(oauthModeRadio, oauthModeText);
+  const customModeOption = createNode(
+    doc,
+    "label",
+    "display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; cursor:pointer;",
+  );
+  const customModeRadio = createNode(doc, "input") as HTMLInputElement;
+  customModeRadio.type = "radio";
+  customModeRadio.name = connectionModeGroupName;
+  customModeRadio.id = `${config.addonRef}-primary-connection-mode-custom`;
+  customModeRadio.value = "custom";
+  const customModeText = createNode(doc, "span");
+  customModeOption.append(customModeRadio, customModeText);
+  connectionModeRow.append(oauthModeOption, customModeOption);
+
+  const customFieldsBox = createNode(
+    doc,
+    "div",
+    "display:flex; flex-direction:column; gap:10px; padding-top:6px; border-top:1px solid #f3f4f6;",
+  );
+  customFieldsBox.id = `${config.addonRef}-custom-openai-fields`;
+
+  const customApiBaseField = createNode(
+    doc,
+    "div",
+    "display:flex; flex-direction:column; gap:4px;",
+  );
+  const customApiBaseLabel = createNode(
+    doc,
+    "label",
+    "font-weight:600; font-size:13px;",
+  );
+  customApiBaseLabel.setAttribute("for", `${config.addonRef}-custom-api-base`);
+  const customApiBaseInput = createNode(
+    doc,
+    "input",
+    "width:100%; padding:8px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;",
+  ) as HTMLInputElement;
+  customApiBaseInput.id = `${config.addonRef}-custom-api-base`;
+  customApiBaseInput.type = "text";
+  const customApiBaseHint = createNode(
+    doc,
+    "span",
+    "font-size:11px; color:#666; line-height:1.5;",
+  );
+  customApiBaseField.append(
+    customApiBaseLabel,
+    customApiBaseInput,
+    customApiBaseHint,
+  );
+
+  const customApiKeyField = createNode(
+    doc,
+    "div",
+    "display:flex; flex-direction:column; gap:4px;",
+  );
+  const customApiKeyLabel = createNode(
+    doc,
+    "label",
+    "font-weight:600; font-size:13px;",
+  );
+  customApiKeyLabel.setAttribute("for", `${config.addonRef}-custom-api-key`);
+  const customApiKeyInput = createNode(
+    doc,
+    "input",
+    "width:100%; padding:8px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;",
+  ) as HTMLInputElement;
+  customApiKeyInput.id = `${config.addonRef}-custom-api-key`;
+  customApiKeyInput.type = "password";
+  const customApiKeyHint = createNode(
+    doc,
+    "span",
+    "font-size:11px; color:#666; line-height:1.5;",
+  );
+  customApiKeyField.append(
+    customApiKeyLabel,
+    customApiKeyInput,
+    customApiKeyHint,
+  );
+
+  const customModelField = createNode(
+    doc,
+    "div",
+    "display:flex; flex-direction:column; gap:4px;",
+  );
+  const customModelLabel = createNode(
+    doc,
+    "label",
+    "font-weight:600; font-size:13px;",
+  );
+  customModelLabel.setAttribute("for", `${config.addonRef}-custom-model`);
+  const customModelInput = createNode(
+    doc,
+    "input",
+    "width:100%; padding:8px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;",
+  ) as HTMLInputElement;
+  customModelInput.id = `${config.addonRef}-custom-model`;
+  customModelInput.type = "text";
+  const customModelHint = createNode(
+    doc,
+    "span",
+    "font-size:11px; color:#666; line-height:1.5;",
+  );
+  customModelField.append(customModelLabel, customModelInput, customModelHint);
+
+  const customModeStatus = createNode(
+    doc,
+    "div",
+    "font-size:12px; line-height:1.5; color:#6b7280;",
+  );
+  customModeStatus.id = `${config.addonRef}-custom-openai-status`;
+  customFieldsBox.append(
+    customApiBaseField,
+    customApiKeyField,
+    customModelField,
+    customModeStatus,
+  );
+  connectionModeBox.append(
+    connectionModeTitle,
+    connectionModeRow,
+    connectionModeHint,
+    customFieldsBox,
+  );
+  root.appendChild(connectionModeBox);
+
+  const setCustomInputBorderState = (
+    input: HTMLInputElement,
+    missing: boolean,
+  ) => {
+    input.style.borderColor = missing ? "#dc2626" : "#ccc";
+    input.style.background = missing ? "#fef2f2" : "#fff";
+  };
+
+  const updateCustomModeUi = () => {
+    const isCustom = customModeRadio.checked;
+    customFieldsBox.style.display = isCustom ? "flex" : "none";
+    customApiBaseInput.disabled = !isCustom;
+    customApiKeyInput.disabled = !isCustom;
+    customModelInput.disabled = !isCustom;
+    const missing = getCustomEndpointMissingFields(
+      customApiBaseInput.value,
+      customModelInput.value,
+    );
+    setCustomInputBorderState(
+      customApiBaseInput,
+      isCustom && missing.includes("apiBase"),
+    );
+    setCustomInputBorderState(
+      customModelInput,
+      isCustom && missing.includes("model"),
+    );
+    setCustomInputBorderState(customApiKeyInput, false);
+    if (!isCustom) {
+      customModeStatus.textContent = L.customModeDisabled;
+      customModeStatus.style.color = "#6b7280";
+      return;
+    }
+    if (missing.length) {
+      customModeStatus.textContent = L.customModeMissing;
+      customModeStatus.style.color = "#b45309";
+      return;
+    }
+    customModeStatus.textContent = L.customModeReady;
+    customModeStatus.style.color = "#065f46";
+  };
+
+  const persistCustomPref = (
+    input: HTMLInputElement,
+    key: "apiBase" | "apiKey" | "model",
+    normalize: (value: string) => string,
+  ) => {
+    const nextValue = normalize(input.value);
+    input.value = nextValue;
+    setPref(key, nextValue);
+    updateCustomModeUi();
+  };
+
+  customApiBaseInput.value = getPref("apiBase") || "";
+  customApiKeyInput.value = getPref("apiKey") || "";
+  customModelInput.value = getPref("model") || "";
+  const initialMode = getPrimaryConnectionMode();
+  oauthModeRadio.checked = initialMode !== "custom";
+  customModeRadio.checked = initialMode === "custom";
+
   const authCards = createNode(
     doc,
     "div",
@@ -617,6 +896,19 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     accountsTitle.textContent = L.accounts;
     modelsTitle.textContent = L.models;
     note.textContent = L.internalNote;
+    connectionModeTitle.textContent = L.customEndpointTitle;
+    oauthModeText.textContent = L.oauthProvidersMode;
+    customModeText.textContent = L.customCompatibleMode;
+    connectionModeHint.textContent = L.customEndpointHint;
+    customApiBaseLabel.textContent = L.customApiBase;
+    customApiBaseInput.placeholder = L.customApiBasePlaceholder;
+    customApiBaseHint.textContent = L.customApiBaseHint;
+    customApiKeyLabel.textContent = L.customApiKey;
+    customApiKeyInput.placeholder = L.customApiKeyPlaceholder;
+    customApiKeyHint.textContent = L.customApiKeyHint;
+    customModelLabel.textContent = L.customModel;
+    customModelInput.placeholder = L.customModelPlaceholder;
+    customModelHint.textContent = L.customModelHint;
     for (const provider of PROVIDERS) {
       const refs = providerCards.get(provider);
       if (!refs) continue;
@@ -638,6 +930,7 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     if (saml) saml.textContent = L.showAllModels;
     const samh = doc.querySelector(`#${config.addonRef}-show-all-models-hint`);
     if (samh) samh.textContent = L.showAllModelsHint;
+    updateCustomModeUi();
   };
 
   const appendProgress = (line: string, color = "#374151") => {
@@ -1212,6 +1505,12 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
     void renderAccounts();
     if (systemPromptInput) systemPromptInput.value = "";
     if (popupInput) popupInput.checked = true;
+    oauthModeRadio.checked = true;
+    customModeRadio.checked = false;
+    customApiBaseInput.value = defaults.apiBase;
+    customApiKeyInput.value = defaults.apiKey;
+    customModelInput.value = defaults.model;
+    updateCustomModeUi();
     dangerStatus.textContent = L.restoreDefaultsDone;
     dangerStatus.style.color = "#065f46";
     appendProgress(`✔ ${L.restoreDefaultsDone}`, "#065f46");
@@ -1241,6 +1540,38 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   });
 
   // (language switching wired above via switchLang)
+
+  const handleModeChange = (mode: "oauth" | "custom") => {
+    setPref("primaryConnectionMode", mode);
+    oauthModeRadio.checked = mode === "oauth";
+    customModeRadio.checked = mode === "custom";
+    updateCustomModeUi();
+  };
+
+  oauthModeRadio.addEventListener("change", () => {
+    if (oauthModeRadio.checked) handleModeChange("oauth");
+  });
+  customModeRadio.addEventListener("change", () => {
+    if (customModeRadio.checked) handleModeChange("custom");
+  });
+
+  const persistCustomApiBase = () =>
+    persistCustomPref(
+      customApiBaseInput,
+      "apiBase",
+      normalizeCustomApiBaseInput,
+    );
+  const persistCustomApiKey = () =>
+    persistCustomPref(customApiKeyInput, "apiKey", (value) => value.trim());
+  const persistCustomModel = () =>
+    persistCustomPref(customModelInput, "model", (value) => value.trim());
+
+  customApiBaseInput.addEventListener("change", persistCustomApiBase);
+  customApiBaseInput.addEventListener("blur", persistCustomApiBase);
+  customApiKeyInput.addEventListener("change", persistCustomApiKey);
+  customApiKeyInput.addEventListener("blur", persistCustomApiKey);
+  customModelInput.addEventListener("change", persistCustomModel);
+  customModelInput.addEventListener("blur", persistCustomModel);
 
   renderStaticText();
   renderModels();
